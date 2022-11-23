@@ -17,7 +17,7 @@ setuptools.setup(
     description="This module is small util for converting Telegram sessions  to various formats (Telethon, Pyrogram, Tdata)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/wathipol/TGSessionsCoverter",
+    url="https://github.com/nazar220160/TGConvertor/",
     packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[
