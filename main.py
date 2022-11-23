@@ -1,5 +1,5 @@
 from pathlib import Path
-from manager.manager import SessionManager
+from TGConvertor.manager.manager import SessionManager
 
 
 def main():
