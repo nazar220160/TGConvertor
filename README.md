@@ -19,17 +19,11 @@
 > simply extracts this data and creates an instance of TelegramSession based on it, the methods of which are convenient to
 > use to convert to the format you need.
 
-## TODO
+## Info
 
-- [x] From telethon\pyrogram SQLite session file
-- [x] From telethon\pyrogram SQLite session stream
-- [x] From tdata
-- [x] To telethon client object (Sync\Async)
-- [x] To telethon SQLite session file
-- [x] To pyrogram client object
-- [x] To pyrogram SQLite session file
-- [x] To tdata
-- [x] From telethon client object
-- [x] From pyrogram client object
-- [ ] CLI usage
-- [ ] Write normal docs
+- [x] Undetect for all anti cheats
+- [x] Dont Need RTX GPU
+- [x] Easy To Use
+- [x] Update every Friday
+- [x] Latest Update 05.01.2024
+
