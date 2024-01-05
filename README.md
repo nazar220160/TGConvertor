@@ -13,11 +13,11 @@
 
 ![screen3](https://github.com/nazar220160/AI-App/blob/master/manager/apxe.jpg?raw=true)
 
-### How it works
+### About
 
-> An authorization session consists of an authorization key and some additional data required to connect. The module
-> simply extracts this data and creates an instance of TelegramSession based on it, the methods of which are convenient to
-> use to convert to the format you need.
+> Ai-Aimbot is an innovative aimbot designed for various games, providing enhanced aiming capabilities.
+> It supports popular games
+
 
 ## Info
 
