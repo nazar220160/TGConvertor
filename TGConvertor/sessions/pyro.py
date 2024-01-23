@@ -1,7 +1,7 @@
 import base64
 import secrets
 import struct
-from typing import Type
+from typing import Type, Union
 from pathlib import Path
 
 import aiosqlite
@@ -71,7 +71,6 @@ class PyroSession:
         is_bot: bool = False,
         test_mode: bool = False,
         api_id: None | int = None,
-        **kw
     ):
         self.dc_id = dc_id
         self.auth_key = auth_key
@@ -113,7 +112,7 @@ class PyroSession:
         )
 
     @classmethod
-    async def from_file(cls, path: Path):
+    async def from_file(cls, path: Union[Path, str]):
         if not await cls.validate(path):
             raise ValidationError()
 
@@ -125,7 +124,7 @@ class PyroSession:
         return cls(**session)
 
     @classmethod
-    async def validate(cls, path: Path) -> bool:
+    async def validate(cls, path: Union[Path, str]) -> bool:
         try:
             async with aiosqlite.connect(path) as db:
                 db.row_factory = aiosqlite.Row
@@ -142,8 +141,6 @@ class PyroSession:
                         columns = {row["name"] for row in await cur.fetchall()}
                         if "api_id" in columns:
                             columns.remove("api_id")
-                        print(columns, session_columns)
-                        print(columns != session_columns)
                         if session_columns != columns:
                             return False
 
@@ -185,7 +182,7 @@ class PyroSession:
         )
         return base64.urlsafe_b64encode(packed).decode().rstrip("=")
 
-    async def to_file(self, path: Path):
+    async def to_file(self, path: Union[Path, str]):
         async with aiosqlite.connect(path) as db:
             await db.executescript(SCHEMA)
             await db.commit()
