@@ -28,3 +28,6 @@ print(session.to_pyrogram_string())
 > An authorization session consists of an authorization key and some additional data required to connect. The module
 > simply extracts this data and creates an instance of TelegramSession based on it, the methods of which are convenient to
 > use to convert to the format you need.
+
+## Donate
+**USDT (BEP20):** `0x34412717daaf427efa39c8508db4f62cce0d6d48`
