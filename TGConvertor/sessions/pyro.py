@@ -71,6 +71,7 @@ class PyroSession:
         is_bot: bool = False,
         test_mode: bool = False,
         api_id: None | int = None,
+        date: int | None = None
     ):
         self.dc_id = dc_id
         self.auth_key = auth_key

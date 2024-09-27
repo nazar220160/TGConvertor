@@ -12,7 +12,6 @@ from telethon.sessions import StringSession
 
 from ..exceptions import ValidationError
 
-
 SCHEMA = """
 CREATE TABLE version (version integer primary key);
 
@@ -58,7 +57,7 @@ class TeleSession:
     TABLES = {
         "sessions": {
             "dc_id", "server_address", "port", "auth_key", "takeout_id"
-            },
+        },
         "entities": {"id", "hash", "username", "phone", "name", "date"},
         "sent_files": {"md5_digest", "file_size", "type", "id", "hash"},
         "update_state": {"id", "pts", "qts", "date", "seq"},
@@ -66,19 +65,23 @@ class TeleSession:
     }
 
     def __init__(
-        self,
-        *,
-        dc_id: int,
-        auth_key: bytes,
-        server_address: None | str = None,
-        port: None | int = None,
-        takeout_id: None | int = None
+            self,
+            *,
+            dc_id: int,
+            auth_key: bytes,
+            server_address: None | str = None,
+            port: None | int = None,
+            takeout_id: None | int = None,
+            user_id: None | int = None,
+            phone_number: None | int = None
     ):
         self.dc_id = dc_id
         self.auth_key = auth_key
         self.server_address = server_address
         self.port = port
         self.takeout_id = takeout_id
+        self.user_id = user_id
+        self.phone_number = phone_number
 
     @classmethod
     def from_string(cls, string: str):
@@ -104,8 +107,12 @@ class TeleSession:
             db.row_factory = aiosqlite.Row
             async with db.execute("SELECT * FROM sessions") as cursor:
                 session = await cursor.fetchone()
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM entities WHERE id NOT LIKE 0") as cursor:
+                entities = {**(await cursor.fetchone())}
 
-        return cls(**session)
+        return cls(user_id=entities.get('id'), phone_number=entities.get('phone'), **session)
 
     @classmethod
     async def validate(cls, path: Path) -> bool:
@@ -140,10 +147,10 @@ class TeleSession:
         return base64.urlsafe_b64decode(x)
 
     def client(
-        self,
-        api: Type[APIData],
-        proxy: None | dict = None,
-        no_updates: bool = True
+            self,
+            api: Type[APIData],
+            proxy: None | dict = None,
+            no_updates: bool = True
     ):
         client = TelegramClient(
             session=StringSession(self.to_string()),

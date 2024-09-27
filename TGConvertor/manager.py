@@ -14,6 +14,7 @@ class SessionManager:
         user_id: None | int = None,
         valid: None | bool = None,
         api: Type[APIData] = API.TelegramDesktop,
+        phone_number: str = None,
     ):
         """
         Initializes a SessionManager instance with the specified parameters.
@@ -33,6 +34,7 @@ class SessionManager:
         self.api = api.copy()
         self.user = None
         self.client = None
+        self.phone_number = phone_number
 
     async def __aenter__(self):
         """
@@ -74,7 +76,9 @@ class SessionManager:
         return cls(
             dc_id=session.dc_id,
             auth_key=session.auth_key,
-            api=api
+            api=api,
+            phone_number=session.phone_number,
+            user_id=session.user_id
         )
 
     @classmethod
