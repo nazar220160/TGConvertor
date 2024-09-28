@@ -213,6 +213,7 @@ class SessionManager:
             dc_id=self.dc_id,
             auth_key=self.auth_key,
             user_id=self.user_id,
+            api_id=self.api['api_id']
         )
 
     @property
