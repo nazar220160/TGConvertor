@@ -199,3 +199,7 @@ class PyroSession:
             )
             await db.execute(sql, params)
             await db.commit()
+            sql = "INSERT INTO version VALUES (?)"
+            params = (3,)
+            await db.execute(sql, params)
+            await db.commit()
