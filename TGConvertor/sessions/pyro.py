@@ -71,6 +71,7 @@ class PyroSession:
         is_bot: bool = False,
         test_mode: bool = False,
         api_id: None | int = None,
+        date: int | None = None
     ):
         self.dc_id = dc_id
         self.auth_key = auth_key
@@ -196,5 +197,9 @@ class PyroSession:
                 self.user_id or 9999,
                 self.is_bot
             )
+            await db.execute(sql, params)
+            await db.commit()
+            sql = "INSERT INTO version VALUES (?)"
+            params = (3,)
             await db.execute(sql, params)
             await db.commit()
