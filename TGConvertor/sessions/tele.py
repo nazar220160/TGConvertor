@@ -181,8 +181,14 @@ class TeleSession:
         ))
 
     async def to_file(self, path: Path):
+        if self.server_address is None:
+                self.server_address, self.port = DataCenter(
+                    self.dc_id, False, False, False
+                )
         async with aiosqlite.connect(path) as db:
             await db.executescript(SCHEMA)
+            await db.commit()
+            await db.execute("INSERT INTO version (version) VALUES (?)", (7,))
             await db.commit()
             sql = "INSERT INTO sessions VALUES (?, ?, ?, ?, ?)"
             params = (
