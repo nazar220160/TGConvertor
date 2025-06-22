@@ -17,31 +17,31 @@ from ..exceptions import ValidationError
 # SCHEMA = """
 # CREATE TABLE version (version integer primary key);
 
-CREATE TABLE sessions (
-    dc_id integer primary key,
-    server_address text,
+# CREATE TABLE sessions (
+#     dc_id integer primary key,
+#     server_address text,
     port integer,
     auth_key blob,
     takeout_id integer
-);
+# );
 
-CREATE TABLE entities (
-    id integer primary key,
-    hash integer not null,
-    username text,
-    phone integer,
-    name text,
-    date integer
-);
+# CREATE TABLE entities (
+#     id integer primary key,
+#     hash integer not null,
+#     username text,
+#     phone integer,
+#     name text,
+#     date integer
+# );
 
-CREATE TABLE sent_files (
-    md5_digest blob,
-    file_size integer,
-    type integer,
-    id integer,
-    hash integer,
-    primary key(md5_digest, file_size, type)
-);
+# CREATE TABLE sent_files (
+#     md5_digest blob,
+#     file_size integer,
+#     type integer,
+#     id integer,
+#     hash integer,
+#     primary key(md5_digest, file_size, type)
+# );
 
 # CREATE TABLE update_state (
 #     id integer primary key,
