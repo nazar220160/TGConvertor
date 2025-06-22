@@ -20,7 +20,7 @@ setup(
     author="nazar220160",
     author_email="nazar.fedorowych@gmail.com",
     url="https://github.com/nazar220160/TGConvertor",
-    requires=requirements,
+    install_requires=requirements, # Changed from 'requires' to 'install_requires'
     scripts=["TGConvertor/__main__.py"],
     classifiers=[
         "Programming Language :: Python :: 3.8",
