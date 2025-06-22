@@ -16,15 +16,15 @@ from ..exceptions import ValidationError
 # SCHEMA variable is no longer needed by to_file or from_file if we use SQLiteSession object
 # SCHEMA = """
 # CREATE TABLE version (version integer primary key);
-
+#
 # CREATE TABLE sessions (
 #     dc_id integer primary key,
 #     server_address text,
-    port integer,
-    auth_key blob,
-    takeout_id integer
+#     port integer,
+#     auth_key blob,
+#     takeout_id integer
 # );
-
+#
 # CREATE TABLE entities (
 #     id integer primary key,
 #     hash integer not null,
@@ -33,7 +33,7 @@ from ..exceptions import ValidationError
 #     name text,
 #     date integer
 # );
-
+#
 # CREATE TABLE sent_files (
 #     md5_digest blob,
 #     file_size integer,
@@ -42,7 +42,7 @@ from ..exceptions import ValidationError
 #     hash integer,
 #     primary key(md5_digest, file_size, type)
 # );
-
+#
 # CREATE TABLE update_state (
 #     id integer primary key,
 #     pts integer,
@@ -56,6 +56,8 @@ from ..exceptions import ValidationError
 class TeleSession:
     _STRUCT_PREFORMAT = '>B{}sH256s'
     CURRENT_VERSION = '1'
+    # TABLES is no longer used by validate() as validate() has been removed.
+    # It could be removed entirely if not used elsewhere, but harmless to keep for now.
     TABLES = {
         "sessions": {
             "dc_id", "server_address", "port", "auth_key", "takeout_id"
@@ -111,18 +113,8 @@ class TeleSession:
         # session_file.load() is called implicitly by property access if not loaded.
         # We can check for auth_key to see if it's a valid-looking session.
         if not session_file.auth_key:
-            # This check might not be foolproof if a session can legitimately have no auth_key
-            # temporarily, but for a saved session, it should exist.
-            # Telethon's own load() method doesn't raise error on empty/new session files.
-            # It might be better to let it load what it can and fail later if auth_key is truly missing.
-            # However, for TGConvertor's purpose, a session without auth_key is not convertible.
              raise ValidationError(f"Session file {path} might be empty or invalid (no auth_key).")
 
-        # user_id and phone_number are not directly part of the core session data
-        # loaded by SQLiteSession properties. They are typically populated by client interactions
-        # and stored in other tables (e.g. 'entities') by the Telethon client.
-        # We will not attempt to read them directly here to maintain compatibility
-        # with Telethon's own session file management.
         return cls(
             dc_id=session_file.dc_id,
             server_address=session_file.server_address,
@@ -134,7 +126,7 @@ class TeleSession:
         )
 
     # @classmethod
-    # async def validate(cls, path: Path) -> bool: # No longer needed, Telethon's SQLiteSession handles file structure.
+    # async def validate(cls, path: Path) -> bool: # No longer needed
     #     pass
 
     @staticmethod
@@ -166,10 +158,12 @@ class TeleSession:
         return client
 
     def to_string(self) -> str:
-        if self.server_address is None:
-            self.server_address, self.port = DataCenter(
-                self.dc_id, False, False, False
-            )
+        if self.server_address is None or self.port is None : # Ensure port is also checked
+            # DataCenter is from pyrogram.session.internals.data_center
+            dc_info = DataCenter(self.dc_id, False, False, False)
+            self.server_address = dc_info.ip_address
+            self.port = dc_info.port
+
         ip = ipaddress.ip_address(self.server_address).packed
         return self.CURRENT_VERSION + self.encode(struct.pack(
             self._STRUCT_PREFORMAT.format(len(ip)),
@@ -182,8 +176,6 @@ class TeleSession:
     async def to_file(self, path: Path):
         if self.server_address is None or self.port is None:
             # DataCenter is from pyrogram.session.internals.data_center
-            # It might be better to use Telethon's own way if available,
-            # but this was pre-existing.
             dc_info = DataCenter(self.dc_id, False, False, False)
             self.server_address = dc_info.ip_address
             self.port = dc_info.port
@@ -194,11 +186,4 @@ class TeleSession:
         if self.takeout_id is not None:
             new_session.takeout_id = self.takeout_id
 
-        # SQLiteSession.save() is synchronous in Telethon's source
-        # but since this method is async, we should ideally use async file ops
-        # However, SQLiteSession itself doesn't offer async save.
-        # For now, direct call. If it blocks significantly, it's an issue for async context.
         new_session.save()
-        # Note: user_id and phone_number are not saved this way, as Telethon's
-        # SQLiteSession primarily handles connection auth data.
-        # Entities are managed by the client during runtime.
