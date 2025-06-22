@@ -4,16 +4,18 @@ import struct
 from pathlib import Path
 from typing import Type
 
-import aiosqlite
-from opentele.api import APIData
-from pyrogram.session.internals.data_center import DataCenter
+# import aiosqlite # No longer needed for direct DB manipulation for to_file/from_file
+from opentele.api import APIData # Still needed for APIData type hint in client()
+from pyrogram.session.internals.data_center import DataCenter # For DataCenter default IP/port
 from telethon import TelegramClient
 from telethon.sessions import StringSession
+from telethon.sessions.sqlite import SQLiteSession # For reading/writing .session files
 
 from ..exceptions import ValidationError
 
-SCHEMA = """
-CREATE TABLE version (version integer primary key);
+# SCHEMA variable is no longer needed by to_file or from_file if we use SQLiteSession object
+# SCHEMA = """
+# CREATE TABLE version (version integer primary key);
 
 CREATE TABLE sessions (
     dc_id integer primary key,
@@ -41,14 +43,14 @@ CREATE TABLE sent_files (
     primary key(md5_digest, file_size, type)
 );
 
-CREATE TABLE update_state (
-    id integer primary key,
-    pts integer,
-    qts integer,
-    date integer,
-    seq integer
-);
-"""
+# CREATE TABLE update_state (
+#     id integer primary key,
+#     pts integer,
+#     qts integer,
+#     date integer,
+#     seq integer
+# );
+# """
 
 
 class TeleSession:
@@ -100,43 +102,40 @@ class TeleSession:
 
     @classmethod
     async def from_file(cls, path: Path):
-        if not await cls.validate(path):
-            raise ValidationError()
+        # The method is async, but SQLiteSession loads synchronously.
+        # Consider making this synchronous if Telethon's session loading is purely sync.
+        # For now, keeping async to match existing signature.
 
-        async with aiosqlite.connect(path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM sessions") as cursor:
-                session = await cursor.fetchone()
-        async with aiosqlite.connect(path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM entities WHERE id NOT LIKE 0") as cursor:
-                entities = {**(await cursor.fetchone())}
+        session_file = SQLiteSession(str(path))
 
-        return cls(user_id=entities.get('id'), phone_number=entities.get('phone'), **session)
+        # session_file.load() is called implicitly by property access if not loaded.
+        # We can check for auth_key to see if it's a valid-looking session.
+        if not session_file.auth_key:
+            # This check might not be foolproof if a session can legitimately have no auth_key
+            # temporarily, but for a saved session, it should exist.
+            # Telethon's own load() method doesn't raise error on empty/new session files.
+            # It might be better to let it load what it can and fail later if auth_key is truly missing.
+            # However, for TGConvertor's purpose, a session without auth_key is not convertible.
+             raise ValidationError(f"Session file {path} might be empty or invalid (no auth_key).")
 
-    @classmethod
-    async def validate(cls, path: Path) -> bool:
-        try:
-            async with aiosqlite.connect(path) as db:
-                db.row_factory = aiosqlite.Row
-                sql = "SELECT name FROM sqlite_master WHERE type='table'"
-                async with db.execute(sql) as cursor:
-                    tables = {row["name"] for row in await cursor.fetchall()}
+        # user_id and phone_number are not directly part of the core session data
+        # loaded by SQLiteSession properties. They are typically populated by client interactions
+        # and stored in other tables (e.g. 'entities') by the Telethon client.
+        # We will not attempt to read them directly here to maintain compatibility
+        # with Telethon's own session file management.
+        return cls(
+            dc_id=session_file.dc_id,
+            server_address=session_file.server_address,
+            port=session_file.port,
+            auth_key=session_file.auth_key,
+            takeout_id=session_file.takeout_id,
+            user_id=None,
+            phone_number=None
+        )
 
-                if tables != set(cls.TABLES.keys()):
-                    return False
-
-                for table, session_columns in cls.TABLES.items():
-                    sql = f'pragma table_info("{table}")'
-                    async with db.execute(sql) as cur:
-                        columns = {row["name"] for row in await cur.fetchall()}
-                        if session_columns != columns:
-                            return False
-
-        except aiosqlite.DatabaseError:
-            return False
-
-        return True
+    # @classmethod
+    # async def validate(cls, path: Path) -> bool: # No longer needed, Telethon's SQLiteSession handles file structure.
+    #     pass
 
     @staticmethod
     def encode(x: bytes) -> str:
@@ -181,22 +180,25 @@ class TeleSession:
         ))
 
     async def to_file(self, path: Path):
-        if self.server_address is None:
-                self.server_address, self.port = DataCenter(
-                    self.dc_id, False, False, False
-                )
-        async with aiosqlite.connect(path) as db:
-            await db.executescript(SCHEMA)
-            await db.commit()
-            await db.execute("INSERT INTO version (version) VALUES (?)", (7,))
-            await db.commit()
-            sql = "INSERT INTO sessions VALUES (?, ?, ?, ?, ?)"
-            params = (
-                self.dc_id,
-                self.server_address,
-                self.port,
-                self.auth_key,
-                self.takeout_id
-            )
-            await db.execute(sql, params)
-            await db.commit()
+        if self.server_address is None or self.port is None:
+            # DataCenter is from pyrogram.session.internals.data_center
+            # It might be better to use Telethon's own way if available,
+            # but this was pre-existing.
+            dc_info = DataCenter(self.dc_id, False, False, False)
+            self.server_address = dc_info.ip_address
+            self.port = dc_info.port
+
+        new_session = SQLiteSession(str(path))
+        new_session.set_dc(self.dc_id, self.server_address, self.port)
+        new_session.auth_key = self.auth_key
+        if self.takeout_id is not None:
+            new_session.takeout_id = self.takeout_id
+
+        # SQLiteSession.save() is synchronous in Telethon's source
+        # but since this method is async, we should ideally use async file ops
+        # However, SQLiteSession itself doesn't offer async save.
+        # For now, direct call. If it blocks significantly, it's an issue for async context.
+        new_session.save()
+        # Note: user_id and phone_number are not saved this way, as Telethon's
+        # SQLiteSession primarily handles connection auth data.
+        # Entities are managed by the client during runtime.

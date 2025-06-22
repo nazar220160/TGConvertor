@@ -3,11 +3,11 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-requirements = ["opentele", "aiosqlite", "pyrogram"]
+requirements = ["opentele>=1.15.1", "aiosqlite", "pyrogram", "telethon"]
 
 setup(
     name="TGConvertor",
-    version="0.0.8",
+    version="0.0.9", # Increment version due to dependency updates
     packages=find_packages(),
     entry_points={
         "console_scripts": [

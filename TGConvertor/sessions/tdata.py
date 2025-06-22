@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import Type, Union
 
 from opentele.api import API, APIData
-from opentele.td import TDesktop, Account, AuthKeyType, AuthKey
+# Ensure AuthKeyType is imported if it's used directly by name in the module.
+# It was used as AuthKeyType.ReadFromFile in the to_folder method.
+from opentele.td import TDesktop, Account, AuthKey, AuthKeyType
 from opentele.td.configs import DcId
 
 

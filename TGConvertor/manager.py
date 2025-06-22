@@ -155,6 +155,7 @@ class SessionManager:
         return cls(
             auth_key=session.auth_key,
             dc_id=session.dc_id,
+            user_id=session.user_id, # Pass user_id extracted from TData
             api=session.api
         )
 
@@ -301,7 +302,7 @@ class SessionManager:
         user = await self.get_user()
 
         if user is None:
-            raise ValidationError()
+            raise ValidationError("Failed to get user details, session might be invalid or revoked.")
 
         return user.id
 
@@ -319,4 +320,6 @@ class SessionManager:
             self.user = await client.get_me()
             if self.user:
                 self.user_id = self.user.id
+                if hasattr(self.user, 'phone') and self.user.phone:
+                    self.phone_number = self.user.phone
         return self.user

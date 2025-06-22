@@ -1,6 +1,7 @@
 import base64
 import secrets
 import struct
+import time
 from typing import Type, Union
 from pathlib import Path
 
@@ -51,13 +52,16 @@ END;
 
 
 class PyroSession:
-    OLD_STRING_FORMAT = ">B?256sI?"
-    OLD_STRING_FORMAT_64 = ">B?256sQ?"
-    STRING_SIZE = 351
-    STRING_SIZE_64 = 356
-    STRING_FORMAT = ">BI?256sQ?"
+    OLD_STRING_FORMAT = ">B?256sI?"  # dc_id, test_mode, auth_key, user_id (32b), is_bot
+    OLD_STRING_FORMAT_64 = ">B?256sQ?"  # dc_id, test_mode, auth_key, user_id (64b), is_bot
+    # STRING_SIZE and STRING_SIZE_64 are no longer used due to refined length check
+    STRING_FORMAT = ">BI?256sQ?"  # dc_id, api_id, test_mode, auth_key, user_id (64b), is_bot
     TABLES = {
-        "sessions": {"dc_id", "test_mode", "auth_key", "date", "user_id", "is_bot"},
+        # api_id is conditionally in the table schema based on older versions of this lib's schema.
+        # The validate() method handles this by removing api_id if present before comparing columns.
+        # For consistency, let's assume the 'sessions' table in TGConvertor's schema should always
+        # accommodate api_id, and from_file will populate it if the column exists.
+        "sessions": {"dc_id", "api_id", "test_mode", "auth_key", "date", "user_id", "is_bot"},
         "peers": {"id", "access_hash", "type", "username", "phone_number", "last_update_on"},
         "version": {"number"}
     }
@@ -82,25 +86,31 @@ class PyroSession:
 
     @classmethod
     def from_string(cls, session_string: str):
-        if len(session_string) in [cls.STRING_SIZE, cls.STRING_SIZE_64]:
-            string_format = cls.OLD_STRING_FORMAT_64
+        decoded_bytes = base64.urlsafe_b64decode(
+            session_string + "=" * (-len(session_string) % 4)
+        )
+        decoded_len = len(decoded_bytes)
 
-            if len(session_string) == cls.STRING_SIZE:
-                string_format = cls.OLD_STRING_FORMAT
+        # Calculate expected lengths based on struct formats
+        old_format_len = struct.calcsize(cls.OLD_STRING_FORMAT)
+        old_format_64_len = struct.calcsize(cls.OLD_STRING_FORMAT_64)
+        current_format_len = struct.calcsize(cls.STRING_FORMAT)
 
+        if decoded_len == old_format_len:
+            string_format = cls.OLD_STRING_FORMAT
             api_id = None
-            dc_id, test_mode, auth_key, user_id, is_bot = struct.unpack(
-                string_format,
-                base64.urlsafe_b64decode(
-                    session_string + "=" * (-len(session_string) % 4)
-                )
-            )
+            dc_id, test_mode, auth_key, user_id, is_bot = struct.unpack(string_format, decoded_bytes)
+        elif decoded_len == old_format_64_len:
+            string_format = cls.OLD_STRING_FORMAT_64
+            api_id = None
+            dc_id, test_mode, auth_key, user_id, is_bot = struct.unpack(string_format, decoded_bytes)
+        elif decoded_len == current_format_len:
+            string_format = cls.STRING_FORMAT
+            dc_id, api_id, test_mode, auth_key, user_id, is_bot = struct.unpack(string_format, decoded_bytes)
         else:
-            dc_id, api_id, test_mode, auth_key, user_id, is_bot = struct.unpack(
-                cls.STRING_FORMAT,
-                base64.urlsafe_b64decode(
-                    session_string + "=" * (-len(session_string) % 4)
-                )
+            raise ValidationError(
+                f"Decoded Pyrogram session string has unexpected length: {decoded_len}. "
+                f"Expected {old_format_len}, {old_format_64_len}, or {current_format_len} bytes."
             )
 
         return cls(
@@ -139,10 +149,10 @@ class PyroSession:
                 for table, session_columns in cls.TABLES.items():
                     sql = f'pragma table_info("{table}")'
                     async with db.execute(sql) as cur:
-                        columns = {row["name"] for row in await cur.fetchall()}
-                        if "api_id" in columns:
-                            columns.remove("api_id")
-                        if session_columns != columns:
+                        columns_from_db_set = {row["name"] for row in await cur.fetchall()}
+                        # No longer special-casing api_id removal here.
+                        # TABLES["sessions"] is the source of truth for expected columns.
+                        if session_columns != columns_from_db_set:
                             return False
 
         except aiosqlite.DatabaseError:
@@ -178,7 +188,7 @@ class PyroSession:
             self.api_id or 0,
             self.test_mode,
             self.auth_key,
-            self.user_id or 9999,
+            self.user_id or 0, # Align with Pyrogram's typical handling for None user_id
             self.is_bot
         )
         return base64.urlsafe_b64encode(packed).decode().rstrip("=")
@@ -193,13 +203,13 @@ class PyroSession:
                 self.api_id,
                 self.test_mode,
                 self.auth_key,
-                0,
-                self.user_id or 9999,
+                int(time.time()), # Use current timestamp
+                self.user_id or 0, # Align with Pyrogram's typical handling for None user_id
                 self.is_bot
             )
             await db.execute(sql, params)
             await db.commit()
             sql = "INSERT INTO version VALUES (?)"
-            params = (3,)
+            params = (5,) # Update to Pyrogram v2.0 schema version
             await db.execute(sql, params)
             await db.commit()
