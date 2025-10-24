@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tgconvertor"
+version = "0.0.9"
+description = "This module is small util for easy converting Telegram sessions to various formats."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Назар", email = "nazar.fedorowych@gmail.com"}]
+license = {text = "MIT"}
+keywords = ["telegram", "session", "converter", "telethon", "pyrogram"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications :: Chat",
+]
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "typing-extensions>=4.0.0",
+    "opentele",
+    "aiosqlite",
+    "pyrogram"
+]
+
+[project.urls]
+Homepage = "https://github.com/nazar220160/TGConvertor"
+Repository = "https://github.com/nazar220160/TGConvertor.git"
+Issues = "https://github.com/nazar220160/TGConvertor/issues"
+Changelog = "https://github.com/nazar220160/TGConvertor/releases"
+
+[project.scripts]
+tgconvertor = "TGConvertor.__main__:app"
+
+[tool.setuptools]
+packages = ["TGConvertor"]

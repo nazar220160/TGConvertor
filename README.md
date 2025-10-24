@@ -14,13 +14,75 @@ This module is small util for easy converting Telegram sessions to various forma
 $ pip install TGConvertor
 ```
 
-## Quickstart
+## Using CLI
+
+After installation, you can use the `tgconvertor` command-line tool:
+
+```bash
+# Show help and available commands
+tgconvertor --help
+
+# List supported formats and API types
+tgconvertor list-formats
+```
+
+### Converting Sessions
+
+The main `convert` command supports various conversion scenarios:
+
+```bash
+# Convert from file to file
+tgconvertor convert session.session -f telethon -t pyrogram -o new_session.session
+
+# Convert from string to file
+tgconvertor convert "1:AAFqwer..." -f telethon -t pyrogram -o session.session
+
+# Convert from file to string
+tgconvertor convert session.session -f telethon -t pyrogram -o string
+
+# Convert from string to string
+tgconvertor convert "1:AAFqwer..." -f telethon -t pyrogram -o string
+
+# Use specific API type (desktop/android/ios/macos/web)
+tgconvertor convert session.session -f telethon -t pyrogram --api android
+```
+
+### View Session Information
+
+You can inspect session details using the `info` command:
+
+```bash
+# Show Telethon session info
+tgconvertor info session.session -f telethon
+
+# Show Pyrogram session info
+tgconvertor info my_session.session -f pyrogram
+```
+
+### Supported Formats
+- `telethon`: Telethon session files (.session)
+- `pyrogram`: Pyrogram session files (.session)
+- `tdata`: Telegram Desktop format (directory)
+
+### API Types
+- `desktop`: Telegram Desktop client (default)
+- `android`: Telegram Android client
+- `ios`: Telegram iOS client
+- `macos`: Telegram macOS client
+- `web`: Telegram Web client
+
+## Quickstart (Python API)
 
 ```python
 from TGConvertor import SessionManager
 
+# Convert from string
 session = SessionManager.from_pyrogram_string('session_str')
 print(session.to_pyrogram_string())
+
+# Convert from file
+session = await SessionManager.from_telethon_file('session.session')
+await session.to_pyrogram_file('new_session.session')
 ```
 
 ### How it works
