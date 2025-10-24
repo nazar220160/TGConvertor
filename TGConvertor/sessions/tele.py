@@ -110,8 +110,9 @@ class TeleSession:
         async with aiosqlite.connect(path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("SELECT * FROM entities WHERE id NOT LIKE 0") as cursor:
-                entities = {**(await cursor.fetchone())}
-
+                row = await cursor.fetchone()
+                entities = dict(row) if row else {}
+                
         return cls(user_id=entities.get('id'), phone_number=entities.get('phone'), **session)
 
     @classmethod

@@ -22,6 +22,8 @@ class TDataSession:
 
     @classmethod
     def from_tdata(cls, tdata_folder: Union[Path, str]):
+        tdata_folder = Path(tdata_folder)
+        
         if not tdata_folder.exists():
             raise FileNotFoundError(tdata_folder)
 

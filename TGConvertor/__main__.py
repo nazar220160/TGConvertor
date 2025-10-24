@@ -1,10 +1,8 @@
 import asyncio
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Any, Union
+from typing import Optional
 import typer
-from typing_extensions import Annotated
-from rich import print
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -13,12 +11,22 @@ from .manager import SessionManager
 from .exceptions import ValidationError
 from opentele.api import API
 
+
 console = Console()
 app = typer.Typer(
     name="tgconvertor",
     help="[bold green]Telegram Session Converter[/bold green] - Convert between different Telegram session formats",
     add_completion=False,
 )
+
+
+def is_source_file_check(s: str) -> bool:
+    try:
+        p = Path(s)
+        # проверяем, есть ли имя файла и расширение
+        return bool(p.name and p.suffix)
+    except Exception:
+        return False
 
 
 class SessionFormat(str, Enum):
@@ -43,7 +51,6 @@ class APIType(str, Enum):
     ANDROID = "android"
     IOS = "ios"
     MACOS = "macos"
-    WEB = "web"
 
 
 def get_api_type(api: APIType) -> API:
@@ -53,7 +60,6 @@ def get_api_type(api: APIType) -> API:
         APIType.ANDROID: API.TelegramAndroid,
         APIType.IOS: API.TelegramIOS,
         APIType.MACOS: API.TelegramMacOS,
-        APIType.WEB: API.WebK,
     }[api]
 
 
@@ -129,19 +135,10 @@ def convert(
             api = get_api_type(api_type)
 
             # Determine if source is a file or string
-            is_source_file = (
-                Path(source).exists() if not source.startswith("1:") else False
-            )
-
+            is_source_file = is_source_file_check(source)
             # Determine output type
             want_string_output = output == "string" if output else False
             output_path = None if want_string_output else (output or source)
-
-            # Validate tdata format restrictions
-            if (from_format == SessionFormat.TDATA and not is_source_file) or (
-                to_format == SessionFormat.TDATA and want_string_output
-            ):
-                raise ValidationError("tdata format can only be used with files")
 
             # Perform conversion
             result = asyncio.run(
@@ -161,15 +158,15 @@ def convert(
         console.print(f"[green]✓[/green] Session successfully converted!")
         if want_string_output and result:
             console.print("\n[bold]Converted string:[/bold]")
-            console.print(result)
+            print(result)
         elif output_path:
             console.print(f"[bold]Output saved to:[/bold] {output_path}")
 
     except ValidationError as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
+        console.print_exception(show_locals=False)
         raise typer.Exit(1)
     except Exception as e:
-        console.print(f"[red]Error:[/red] An unexpected error occurred: {str(e)}")
+        console.print_exception(show_locals=False)
         raise typer.Exit(1)
 
 
@@ -244,7 +241,6 @@ def list_formats():
     api_table.add_row("android", "Telegram Android client")
     api_table.add_row("ios", "Telegram iOS client")
     api_table.add_row("macos", "Telegram macOS client")
-    api_table.add_row("web", "Telegram Web client")
 
     console.print(formats_table)
     console.print()
@@ -265,6 +261,10 @@ async def _convert_universal(
     # Load session from source
     if is_source_file:
         source_path = Path(source)
+        if not source_path.exists():
+            raise ValidationError(
+                f"Source session file/directory does not exist: {source}"
+            )
         if from_format == SessionFormat.TELETHON:
             session = await SessionManager.from_telethon_file(source_path, api)
         elif from_format == SessionFormat.PYROGRAM:
@@ -278,9 +278,10 @@ async def _convert_universal(
             session = SessionManager.from_telethon_string(source, api)
         elif from_format == SessionFormat.PYROGRAM:
             session = SessionManager.from_pyrogram_string(source, api)
+        elif from_format == SessionFormat.TDATA:
+            session = SessionManager.from_tdata_folder(source)
         else:
             raise ValidationError(f"Format {from_format} doesn't support string input")
-
     # Convert to target format
     if want_string_output:
         if to_format == SessionFormat.TELETHON:
@@ -300,92 +301,6 @@ async def _convert_universal(
         else:
             raise ValidationError(f"Unsupported target format: {to_format}")
         return None
-
-
-@app.command()
-def convert(
-    session_string: str = typer.Argument(
-        ...,
-        help="Session string to convert",
-    ),
-    from_format: SessionFormat = typer.Option(
-        ...,
-        "--from",
-        "-f",
-        help="Source session format (telethon/pyrogram)",
-    ),
-    to_format: SessionFormat = typer.Option(
-        ...,
-        "--to",
-        "-t",
-        help="Target session format (telethon/pyrogram)",
-    ),
-    api_type: APIType = typer.Option(
-        APIType.DESKTOP,
-        "--api",
-        "-a",
-        help="Telegram API type to use for the conversion",
-    ),
-):
-    """
-    Convert session string between different formats.
-
-    Examples:
-        • Convert Telethon string to Pyrogram:
-          $ tgconvertor convert-string "1:AAFqwer..." --from telethon --to pyrogram
-
-        • Convert string using Android API:
-          $ tgconvertor convert-string "1:AAFqwer..." --from telethon --to pyrogram --api android
-    """
-    try:
-        if from_format == SessionFormat.TDATA or to_format == SessionFormat.TDATA:
-            raise ValidationError("tdata format is not supported for string conversion")
-
-        api = get_api_type(api_type)
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Converting session string...", total=None)
-
-            # Perform conversion
-            result = asyncio.run(
-                _convert_session_string(session_string, from_format, to_format, api)
-            )
-
-            progress.update(task, completed=True)
-
-        console.print(f"[green]✓[/green] Session string successfully converted!")
-        console.print("\n[bold]Converted string:[/bold]")
-        console.print(result)
-
-    except ValidationError as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"[red]Error:[/red] An unexpected error occurred: {str(e)}")
-        raise typer.Exit(1)
-
-
-async def _convert_session_string(
-    session_string: str, from_format: SessionFormat, to_format: SessionFormat, api: API
-) -> str:
-    """Convert session string between formats"""
-    if from_format == SessionFormat.TELETHON:
-        session = SessionManager.from_telethon_string(session_string, api)
-    elif from_format == SessionFormat.PYROGRAM:
-        session = SessionManager.from_pyrogram_string(session_string, api)
-    else:
-        raise ValidationError(f"Unsupported source format for strings: {from_format}")
-
-    if to_format == SessionFormat.TELETHON:
-        return session.to_telethon_string()
-    elif to_format == SessionFormat.PYROGRAM:
-        return session.to_pyrogram_string()
-    else:
-        raise ValidationError(f"Unsupported target format for strings: {to_format}")
 
 
 async def _get_session_info(path: Path, format: SessionFormat) -> dict:
