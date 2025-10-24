@@ -1,4 +1,4 @@
-# TGConvertor
+# TGConvertor <a href="https://pepy.tech/projects/tgconvertor"><img src="https://static.pepy.tech/personalized-badge/tgconvertor?period=total&units=NONE&left_color=BLACK&right_color=GREEN&left_text=downloads" align="right" alt="PyPI Downloads"></a>
 
 <img src="public/images/poster.png" style="border-radius: 15px;" alt="poster">
 
