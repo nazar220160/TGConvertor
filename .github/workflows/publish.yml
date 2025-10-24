@@ -1,16 +1,16 @@
-name: Publish Python Package
+name: Release tgconvertor
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*.*.*'  # только теги вида v0.0.9
 
 jobs:
-  build-and-publish:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -25,6 +25,26 @@ jobs:
 
     - name: Build package
       run: python -m build
+
+    - name: Get latest tag for changelog
+      id: git
+      run: |
+        LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+        COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s")
+        echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release and Upload Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          Changes since ${{ steps.git.outputs.last_tag }}:
+          ${{ steps.git.outputs.commits }}
+        files: dist/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish to PyPI
       env:
