@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgconvertor"
-version = "0.0.10"
+version = "0.0.11"
 description = "This module is small util for easy converting Telegram sessions to various formats."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,7 +40,8 @@ Changelog = "https://github.com/nazar220160/TGConvertor/releases"
 tgconvertor = "TGConvertor.__main__:app"
 
 [tool.setuptools.packages.find]
-where = ["TGConvertor"]
+where = ["."]
+include = ["TGConvertor*"]
 
 [tool.setuptools.package-data]
 TGConvertor = ["sessions/*"]
