@@ -1,5 +1,3 @@
-<img src="https://cdn4.iconfinder.com/data/icons/social-media-and-logos-12/32/Logo_telegram_Airplane_Air_plane_paper_airplane-33-256.png" align="right" width="50" />
-
 # TGConvertor
 
 <img src="public/images/poster.png" style="border-radius: 15px;" alt="poster">
