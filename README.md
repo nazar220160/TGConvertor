@@ -10,10 +10,15 @@ This module is small util for easy converting Telegram sessions to various forma
 
 ## Installation
 
-```
-$ pip install TGConvertor
-```
 
+##### with Pyrogram support
+```bash
+$ pip install TGConvertor[pyrogram]
+```
+##### with Kurigram support
+```bash
+$ pip install TGConvertor[kurigram]
+```
 ## Using CLI
 
 After installation, you can use the `tgconvertor` command-line tool:

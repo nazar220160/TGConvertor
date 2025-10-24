@@ -27,8 +27,11 @@ dependencies = [
     "typing-extensions>=4.0.0",
     "opentele",
     "aiosqlite",
-    "pyrogram"
 ]
+
+[project.optional-dependencies]
+pyrogram = ["pyrogram"]
+kurigram = ["kurigram"]
 
 [project.urls]
 Homepage = "https://github.com/nazar220160/TGConvertor"

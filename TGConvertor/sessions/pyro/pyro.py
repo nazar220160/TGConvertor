@@ -8,7 +8,7 @@ import aiosqlite
 from opentele.api import APIData
 from pyrogram.client import Client
 
-from ..exceptions import ValidationError
+from ...exceptions import ValidationError
 
 
 SCHEMA = """

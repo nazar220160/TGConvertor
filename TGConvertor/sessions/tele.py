@@ -6,7 +6,11 @@ from typing import Type
 
 import aiosqlite
 from opentele.api import APIData
-from pyrogram.session.internals.data_center import DataCenter
+from . import is_kurigram
+if is_kurigram:
+    from pyrogram.storage.sqlite_storage import PROD
+else:
+    from pyrogram.session.internals.data_center import DataCenter
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
@@ -169,9 +173,13 @@ class TeleSession:
 
     def to_string(self) -> str:
         if self.server_address is None:
-            self.server_address, self.port = DataCenter(
-                self.dc_id, False, False, False
-            )
+            if is_kurigram:
+                self.server_address = PROD[self.dc_id]
+                self.port = 443
+            else:
+                self.server_address, self.port = DataCenter(
+                    self.dc_id, False, False, False
+                )
         ip = ipaddress.ip_address(self.server_address).packed
         return self.CURRENT_VERSION + self.encode(struct.pack(
             self._STRUCT_PREFORMAT.format(len(ip)),
@@ -183,6 +191,10 @@ class TeleSession:
 
     async def to_file(self, path: Path):
         if self.server_address is None:
+            if is_kurigram:
+                self.server_address = PROD[self.dc_id]
+                self.port = 443
+            else:
                 self.server_address, self.port = DataCenter(
                     self.dc_id, False, False, False
                 )
