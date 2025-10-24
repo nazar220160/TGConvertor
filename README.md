@@ -43,6 +43,12 @@ tgconvertor convert session.session -f telethon -t pyrogram -o string
 # Convert from string to string
 tgconvertor convert "1:AAFqwer..." -f telethon -t pyrogram -o string
 
+# Convert from string to tdata
+tgconvertor convert "1:AAFqwer..." -f telethon -t tdata -o tdata_folder
+
+# Convert from tdata to string
+tgconvertor convert tdata_folder/tdata -f tdata -t telethon -o string
+
 # Use specific API type (desktop/android/ios/macos/web)
 tgconvertor convert session.session -f telethon -t pyrogram --api android
 ```
