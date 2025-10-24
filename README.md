@@ -1,11 +1,10 @@
-<img src="https://cdn4.iconfinder.com/data/icons/social-media-and-logos-12/32/Logo_telegram_Airplane_Air_plane_paper_airplane-33-256.png" align="right" width="131" />
+<img src="https://cdn4.iconfinder.com/data/icons/social-media-and-logos-12/32/Logo_telegram_Airplane_Air_plane_paper_airplane-33-256.png" align="right" width="50" />
 
 # TGConvertor
 
-![PyPI](https://img.shields.io/pypi/v/TGSessionsConverter)
-![PyPI - License](https://img.shields.io/pypi/l/TGSessionsConverter)
+<img src="public/images/poster.png" style="border-radius: 15px;" alt="poster">
 
-This module is small util for easy converting Telegram sessions to various formats (Telethon, Pyrogram, Tdata)
+This module is small util for easy converting Telegram sessions to various formats (Telethon, Pyrogram, Kurigram, Tdata)
 <hr/>
 
 ## Installation
