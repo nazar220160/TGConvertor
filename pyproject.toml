@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgconvertor"
-version = "0.1.1"
+version = "0.1.2"
 description = "This module is small util for easy converting Telegram sessions to various formats."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,13 +25,13 @@ dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "typing-extensions>=4.0.0",
-    "opentele",
     "aiosqlite",
 ]
 
 [project.optional-dependencies]
 pyrogram = ["pyrogram"]
 kurigram = ["kurigram"]
+tdata = ["opentele"]
 
 [project.urls]
 Homepage = "https://github.com/nazar220160/TGConvertor"

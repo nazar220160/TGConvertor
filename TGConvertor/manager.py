@@ -1,6 +1,7 @@
 from pathlib import Path
-from typing import Type, Union
-from opentele.api import API, APIData
+from typing import Union
+
+from .api import API, APIData
 from .sessions.pyro import PyroSession
 from .sessions.tele import TeleSession
 from .sessions.tdata import TDataSession
@@ -14,8 +15,11 @@ class SessionManager:
         auth_key: bytes,
         user_id: None | int = None,
         valid: None | bool = None,
-        api: Type[APIData] = API.TelegramDesktop,
-        phone_number: str = None,
+        api: APIData = API.TelegramDesktop,
+        phone_number: str | None = None,
+        test_mode: bool = False,
+        is_bot: bool = False,
+        api_id: None | int = None,
     ):
         """
         Initializes a SessionManager instance with the specified parameters.
@@ -25,7 +29,11 @@ class SessionManager:
             auth_key (bytes): Authentication key.
             user_id (None|int, optional): User ID, default is None.
             valid (None|bool, optional): Validation status, default is None.
-            api (Type[APIData], optional): API type, default is API.TelegramDesktop.
+            api (APIData, optional): API data, default is API.TelegramDesktop.
+            phone_number (str|None, optional): Phone number, default is None.
+            test_mode (bool, optional): Test mode flag, default is False.
+            is_bot (bool, optional): Is bot flag, default is False.
+            api_id (int|None, optional): API ID from session, default is None.
         """
 
         self.dc_id = dc_id
@@ -36,6 +44,9 @@ class SessionManager:
         self.user = None
         self.client = None
         self.phone_number = phone_number
+        self.test_mode = test_mode
+        self.is_bot = is_bot
+        self.api_id = api_id or api.api_id
 
     async def __aenter__(self):
         """
@@ -51,7 +62,7 @@ class SessionManager:
         Asynchronous context manager exit method.
         Disconnects the Telethon client.
         """
-        await self.client.disconnect()
+        await self.client.disconnect() # type: ignore
         self.client = None
 
     @property
@@ -68,17 +79,17 @@ class SessionManager:
 
         Args:
             file (Union[Path, str]): Path to the Telethon file.
-            api (Type[APIData], optional): API type, default is API.TelegramDesktop.
+            api (APIData, optional): API data, default is API.TelegramDesktop.
 
         Returns:
             SessionManager: An instance initialized from the Telethon file.
         """
-        session = await TeleSession.from_file(file)
+        session = await TeleSession.from_file(Path(file))
         return cls(
             dc_id=session.dc_id,
             auth_key=session.auth_key,
             api=api,
-            phone_number=session.phone_number,
+            phone_number=session.phone_number, # type: ignore
             user_id=session.user_id,
         )
 
@@ -89,7 +100,7 @@ class SessionManager:
 
         Args:
             string (str): Telethon session string.
-            api (Type[APIData], optional): API type, default is API.TelegramDesktop.
+            api (APIData, optional): API data, default is API.TelegramDesktop.
 
         Returns:
             SessionManager: An instance initialized from the Telethon string.
@@ -104,7 +115,7 @@ class SessionManager:
 
         Args:
             file (Union[Path, str]): Path to the Pyrogram file.
-            api (Type[APIData], optional): API type, default is API.TelegramDesktop.
+            api (APIData, optional): API data, default is API.TelegramDesktop.
 
         Returns:
             SessionManager: An instance initialized from the Pyrogram file.
@@ -115,6 +126,9 @@ class SessionManager:
             dc_id=session.dc_id,
             api=api,
             user_id=session.user_id,
+            test_mode=session.test_mode,
+            is_bot=session.is_bot,
+            api_id=session.api_id,
         )
 
     @classmethod
@@ -124,7 +138,7 @@ class SessionManager:
 
         Args:
             string (str): Pyrogram session string.
-            api (Type[APIData], optional): API type, default is API.TelegramDesktop.
+            api (APIData, optional): API data, default is API.TelegramDesktop.
 
         Returns:
             SessionManager: An instance initialized from the Pyrogram string.
@@ -135,6 +149,9 @@ class SessionManager:
             dc_id=session.dc_id,
             api=api,
             user_id=session.user_id,
+            test_mode=session.test_mode,
+            is_bot=session.is_bot,
+            api_id=session.api_id,
         )
 
     @classmethod
@@ -158,7 +175,7 @@ class SessionManager:
         Args:
             path (Union[Path, str]): Path to save the Pyrogram file.
         """
-        await self.pyrogram.to_file(path)
+        await self.pyrogram.to_file(Path(path))
 
     def to_pyrogram_string(self) -> str:
         """
@@ -176,7 +193,7 @@ class SessionManager:
         Args:
             path (Union[Path, str]): Path to save the Telethon file.
         """
-        await self.telethon.to_file(path)
+        await self.telethon.to_file(Path(path))
 
     def to_telethon_string(self) -> str:
         """
@@ -207,7 +224,9 @@ class SessionManager:
             dc_id=self.dc_id,
             auth_key=self.auth_key,
             user_id=self.user_id,
-            api_id=self.api.api_id,
+            api_id=self.api_id,
+            test_mode=self.test_mode,
+            is_bot=self.is_bot,
         )
 
     @property
@@ -225,6 +244,8 @@ class SessionManager:
         """
         Returns a TDataSession instance representing the current session.
         """
+        if self.user_id is None:
+            raise ValueError("user_id is required for TDataSession")
         return TDataSession(
             dc_id=self.dc_id,
             auth_key=self.auth_key,
@@ -297,7 +318,7 @@ class SessionManager:
         if user is None:
             raise ValidationError()
 
-        return user.id
+        return user.id # type: ignore
 
     async def get_user(self):
         """
@@ -312,5 +333,5 @@ class SessionManager:
         async with self as client:
             self.user = await client.get_me()
             if self.user:
-                self.user_id = self.user.id
+                self.user_id = self.user.id # type: ignore
         return self.user

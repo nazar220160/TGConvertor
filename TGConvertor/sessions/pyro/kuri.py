@@ -2,13 +2,13 @@ import base64
 import secrets
 import struct
 import time
-from typing import Type, Union
+from typing import Union
 from pathlib import Path
 
 import aiosqlite
-from opentele.api import APIData
-from pyrogram.client import Client
+from pyrogram.client import Client # type: ignore
 
+from ...api import APIData
 from ...exceptions import ValidationError
 
 # Схема из новой версии Pyrogram
@@ -151,14 +151,6 @@ class PyroSession:
 
     def to_string(self) -> str:
         """Экспортирует сессию в session_string (новый формат)."""
-        print(self.STRING_FORMAT)
-        print(self.dc_id)
-        print(self.api_id)
-        print(self.test_mode)
-        print(self.auth_key)
-        print(self.user_id)
-        print(self.is_bot)
-
         packed = struct.pack(
             self.STRING_FORMAT,
             self.dc_id,
@@ -181,7 +173,9 @@ class PyroSession:
             async with db.execute("SELECT * FROM sessions") as cursor:
                 session = await cursor.fetchone()
 
-        return cls(**session)
+        if session is None:
+            raise ValidationError(f"No session found in: {path}")
+        return cls(**dict(session))
 
     @classmethod
     async def validate(cls, path: Union[Path, str]) -> bool:
@@ -243,7 +237,7 @@ class PyroSession:
             await db.commit()
 
     def client(
-        self, api: Type[APIData], proxy: dict | None = None, no_updates: bool = True
+        self, api: APIData, proxy: dict | None = None, no_updates: bool = True
     ) -> Client:
         """Создает готовый pyrogram.Client на основе этой сессии."""
         return Client(

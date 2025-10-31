@@ -1,13 +1,13 @@
 import base64
 import secrets
 import struct
-from typing import Type, Union
+from typing import Union
 from pathlib import Path
 
 import aiosqlite
-from opentele.api import APIData
-from pyrogram.client import Client
+from pyrogram.client import Client # type: ignore
 
+from ...api import APIData
 from ...exceptions import ValidationError
 
 
@@ -122,7 +122,7 @@ class PyroSession:
             async with db.execute("SELECT * FROM sessions") as cursor:
                 session = await cursor.fetchone()
 
-        return cls(**session)
+        return cls(**session) # type: ignore
 
     @classmethod
     async def validate(cls, path: Union[Path, str]) -> bool:
@@ -152,7 +152,7 @@ class PyroSession:
 
     def client(
         self,
-        api: Type[APIData],
+        api: APIData,
         proxy: None | dict = None,
         no_updates: bool = True
     ) -> Client:

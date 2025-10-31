@@ -9,7 +9,7 @@ from rich.table import Table
 
 from .manager import SessionManager
 from .exceptions import ValidationError
-from opentele.api import API
+from .api import API, APIData
 
 
 console = Console()
@@ -53,8 +53,8 @@ class APIType(str, Enum):
     MACOS = "macos"
 
 
-def get_api_type(api: APIType) -> API:
-    """Convert string API type to opentele.API type"""
+def get_api_type(api: APIType) -> APIData:
+    """Convert string API type to API type"""
     return {
         APIType.DESKTOP: API.TelegramDesktop,
         APIType.ANDROID: API.TelegramAndroid,
@@ -251,7 +251,7 @@ async def _convert_universal(
     source: str,
     from_format: SessionFormat,
     to_format: SessionFormat,
-    api: API,
+    api: APIData,
     is_source_file: bool = False,
     want_string_output: bool = False,
     output_path: Optional[str] = None,
@@ -270,7 +270,7 @@ async def _convert_universal(
         elif from_format == SessionFormat.PYROGRAM:
             session = await SessionManager.from_pyrogram_file(source_path, api)
         elif from_format == SessionFormat.TDATA:
-            session = await SessionManager.from_tdata_folder(source_path, api)
+            session = SessionManager.from_tdata_folder(source_path)
         else:
             raise ValidationError(f"Unsupported source format: {from_format}")
     else:
