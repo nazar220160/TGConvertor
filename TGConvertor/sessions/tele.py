@@ -2,19 +2,20 @@ import base64
 import ipaddress
 import struct
 from pathlib import Path
-from typing import Type
 
 import aiosqlite
-from opentele.api import APIData
+from telethon import TelegramClient # type: ignore
+from telethon.sessions import StringSession # type: ignore
+
 from . import is_kurigram
 if is_kurigram:
-    from pyrogram.storage.sqlite_storage import PROD
+    from pyrogram.storage.sqlite_storage import PROD # type: ignore
 else:
-    from pyrogram.session.internals.data_center import DataCenter
-from telethon import TelegramClient
-from telethon.sessions import StringSession
+    from pyrogram.session.internals.data_center import DataCenter # type: ignore
 
+from ..api import APIData
 from ..exceptions import ValidationError
+
 
 SCHEMA = """
 CREATE TABLE version (version integer primary key);
@@ -117,7 +118,7 @@ class TeleSession:
                 row = await cursor.fetchone()
                 entities = dict(row) if row else {}
                 
-        return cls(user_id=entities.get('id'), phone_number=entities.get('phone'), **session)
+        return cls(user_id=entities.get('id'), phone_number=entities.get('phone'), **session) # type: ignore
 
     @classmethod
     async def validate(cls, path: Path) -> bool:
@@ -153,7 +154,7 @@ class TeleSession:
 
     def client(
             self,
-            api: Type[APIData],
+            api: APIData,
             proxy: None | dict = None,
             no_updates: bool = True
     ):
@@ -161,7 +162,7 @@ class TeleSession:
             session=StringSession(self.to_string()),
             api_id=api.api_id,
             api_hash=api.api_hash,
-            proxy=proxy,
+            proxy=proxy, # type: ignore
             device_model=api.device_model,
             system_version=api.system_version,
             app_version=api.app_version,
@@ -174,10 +175,10 @@ class TeleSession:
     def to_string(self) -> str:
         if self.server_address is None:
             if is_kurigram:
-                self.server_address = PROD[self.dc_id]
+                self.server_address = PROD[self.dc_id] # type: ignore
                 self.port = 443
             else:
-                self.server_address, self.port = DataCenter(
+                self.server_address, self.port = DataCenter( # type: ignore
                     self.dc_id, False, False, False
                 )
         ip = ipaddress.ip_address(self.server_address).packed
@@ -192,10 +193,10 @@ class TeleSession:
     async def to_file(self, path: Path):
         if self.server_address is None:
             if is_kurigram:
-                self.server_address = PROD[self.dc_id]
+                self.server_address = PROD[self.dc_id] # type: ignore
                 self.port = 443
             else:
-                self.server_address, self.port = DataCenter(
+                self.server_address, self.port = DataCenter( # type: ignore
                     self.dc_id, False, False, False
                 )
         async with aiosqlite.connect(path) as db:

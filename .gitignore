@@ -1,3 +1,7 @@
+# dev dep
+uv.lock
+main.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -158,5 +162,4 @@ wheelhouse/
 
 # Optional: ignore virtualenv wrapper files
 .python-version
-uv.lock
 # End

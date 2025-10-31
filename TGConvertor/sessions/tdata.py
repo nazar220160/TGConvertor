@@ -1,9 +1,19 @@
 from pathlib import Path
-from typing import Type, Union
+from typing import Union
 
-from opentele.api import API, APIData
-from opentele.td import TDesktop, Account, AuthKeyType, AuthKey
-from opentele.td.configs import DcId
+from ..api import API, APIData
+
+try:
+    from opentele.td import TDesktop, Account, AuthKeyType, AuthKey # type: ignore
+    from opentele.td.configs import DcId # type: ignore
+    HAS_OPENTELE_TD = True
+except ImportError:
+    HAS_OPENTELE_TD = False
+    TDesktop = None
+    Account = None
+    AuthKeyType = None
+    AuthKey = None
+    DcId = None
 
 
 class TDataSession:
@@ -13,7 +23,7 @@ class TDataSession:
             dc_id: int,
             auth_key: bytes,
             user_id: int,
-            api: Type[APIData] = API.TelegramDesktop,
+            api: APIData = API.TelegramDesktop,
     ):
         self.dc_id = dc_id
         self.auth_key = auth_key
@@ -22,6 +32,12 @@ class TDataSession:
 
     @classmethod
     def from_tdata(cls, tdata_folder: Union[Path, str]):
+        if not HAS_OPENTELE_TD:
+            raise ImportError(
+                "TData support requires opentele package. "
+                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
+            )
+        
         tdata_folder = Path(tdata_folder)
         
         if not tdata_folder.exists():
@@ -37,6 +53,13 @@ class TDataSession:
         )
 
     def to_folder(self, path: Union[Path, str]):
+        if not HAS_OPENTELE_TD:
+            raise ImportError(
+                "TData support requires opentele package. "
+                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
+            )
+        
+        path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 
         dc_id = DcId(self.dc_id)
