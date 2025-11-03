@@ -29,7 +29,7 @@ jobs:
     - name: Get latest tag for changelog
       id: git
       run: |
-        LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
         echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
         COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s")
         echo "commits=$COMMITS" >> $GITHUB_OUTPUT
