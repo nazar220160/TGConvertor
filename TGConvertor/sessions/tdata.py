@@ -3,17 +3,8 @@ from typing import Union
 
 from ..api import API, APIData
 
-try:
-    from opentele.td import TDesktop, Account, AuthKeyType, AuthKey # type: ignore
-    from opentele.td.configs import DcId # type: ignore
-    HAS_OPENTELE_TD = True
-except ImportError:
-    HAS_OPENTELE_TD = False
-    TDesktop = None
-    Account = None
-    AuthKeyType = None
-    AuthKey = None
-    DcId = None
+from opentele.td import TDesktop, Account, AuthKeyType, AuthKey # type: ignore
+from opentele.td.configs import DcId # type: ignore
 
 
 class TDataSession:
@@ -31,13 +22,7 @@ class TDataSession:
         self.api = api
 
     @classmethod
-    def from_tdata(cls, tdata_folder: Union[Path, str]):
-        if not HAS_OPENTELE_TD:
-            raise ImportError(
-                "TData support requires opentele package. "
-                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
-            )
-        
+    def from_tdata(cls, tdata_folder: Union[Path, str]):        
         tdata_folder = Path(tdata_folder)
         
         if not tdata_folder.exists():
@@ -52,13 +37,7 @@ class TDataSession:
             dc_id=account.MainDcId
         )
 
-    def to_folder(self, path: Union[Path, str]):
-        if not HAS_OPENTELE_TD:
-            raise ImportError(
-                "TData support requires opentele package. "
-                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
-            )
-        
+    def to_folder(self, path: Union[Path, str]):        
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 

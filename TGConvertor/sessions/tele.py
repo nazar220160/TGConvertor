@@ -7,11 +7,7 @@ import aiosqlite
 from telethon import TelegramClient # type: ignore
 from telethon.sessions import StringSession # type: ignore
 
-from . import is_kurigram
-if is_kurigram:
-    from pyrogram.storage.sqlite_storage import PROD # type: ignore
-else:
-    from pyrogram.session.internals.data_center import DataCenter # type: ignore
+from ..data_center import DataCenter  # type: ignore
 
 from ..api import APIData
 from ..exceptions import ValidationError
@@ -174,13 +170,9 @@ class TeleSession:
 
     def to_string(self) -> str:
         if self.server_address is None:
-            if is_kurigram:
-                self.server_address = PROD[self.dc_id] # type: ignore
-                self.port = 443
-            else:
-                self.server_address, self.port = DataCenter( # type: ignore
-                    self.dc_id, False, False, False
-                )
+            self.server_address, self.port = DataCenter( # type: ignore
+                self.dc_id, False, False, False
+            )
         ip = ipaddress.ip_address(self.server_address).packed
         return self.CURRENT_VERSION + self.encode(struct.pack(
             self._STRUCT_PREFORMAT.format(len(ip)),
@@ -192,13 +184,9 @@ class TeleSession:
 
     async def to_file(self, path: Path):
         if self.server_address is None:
-            if is_kurigram:
-                self.server_address = PROD[self.dc_id] # type: ignore
-                self.port = 443
-            else:
-                self.server_address, self.port = DataCenter( # type: ignore
-                    self.dc_id, False, False, False
-                )
+            self.server_address, self.port = DataCenter( # type: ignore
+                self.dc_id, False, False, False
+            )
         async with aiosqlite.connect(path) as db:
             await db.executescript(SCHEMA)
             await db.commit()

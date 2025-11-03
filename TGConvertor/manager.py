@@ -2,9 +2,18 @@ from pathlib import Path
 from typing import Union
 
 from .api import API, APIData
-from .sessions.pyro import PyroSession
-from .sessions.tele import TeleSession
-from .sessions.tdata import TDataSession
+try:
+    from .sessions.pyro import PyroSession
+except ImportError:
+    PyroSession = None
+try:
+    from .sessions.tele import TeleSession
+except ImportError:
+    TeleSession = None
+try:
+    from .sessions.tdata import TDataSession
+except ImportError:
+    TDataSession = None
 from .exceptions import ValidationError
 
 
@@ -84,6 +93,8 @@ class SessionManager:
         Returns:
             SessionManager: An instance initialized from the Telethon file.
         """
+        if TeleSession is None:
+            raise ImportError("Must install telethon to use Telethon sessions.")
         session = await TeleSession.from_file(Path(file))
         return cls(
             dc_id=session.dc_id,
@@ -105,6 +116,8 @@ class SessionManager:
         Returns:
             SessionManager: An instance initialized from the Telethon string.
         """
+        if TeleSession is None:
+            raise ImportError("Must install telethon to use Telethon sessions.")
         session = TeleSession.from_string(string)
         return cls(dc_id=session.dc_id, auth_key=session.auth_key, api=api)
 
@@ -120,6 +133,8 @@ class SessionManager:
         Returns:
             SessionManager: An instance initialized from the Pyrogram file.
         """
+        if PyroSession is None:
+            raise ImportError("Must install pyrogram or kurigram to use Pyrogram sessions.")
         session = await PyroSession.from_file(file)
         return cls(
             auth_key=session.auth_key,
@@ -143,6 +158,8 @@ class SessionManager:
         Returns:
             SessionManager: An instance initialized from the Pyrogram string.
         """
+        if PyroSession is None:
+            raise ImportError("Must install pyrogram or kurigram to use Pyrogram sessions.")
         session = PyroSession.from_string(string)
         return cls(
             auth_key=session.auth_key,
@@ -165,6 +182,11 @@ class SessionManager:
         Returns:
             SessionManager: An instance initialized from the TData session folder.
         """
+        if not TDataSession:
+            raise ImportError(
+                "TData support requires opentele package. "
+                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
+            )
         session = TDataSession.from_tdata(folder)
         return cls(auth_key=session.auth_key, dc_id=session.dc_id, api=session.api)
 
@@ -220,6 +242,9 @@ class SessionManager:
         Returns a PyroSession instance representing the current session.
         """
 
+        if PyroSession is None:
+            raise ImportError("Must install pyrogram or kurigram to use Pyrogram sessions.")
+
         return PyroSession(
             dc_id=self.dc_id,
             auth_key=self.auth_key,
@@ -234,6 +259,8 @@ class SessionManager:
         """
         Returns a TeleSession instance representing the current session.
         """
+        if TeleSession is None:
+            raise ImportError("Must install telethon to use Telethon sessions.")
         return TeleSession(
             dc_id=self.dc_id,
             auth_key=self.auth_key,
@@ -244,6 +271,11 @@ class SessionManager:
         """
         Returns a TDataSession instance representing the current session.
         """
+        if not TDataSession:
+            raise ImportError(
+                "TData support requires opentele package. "
+                "Please install it with: pip install tgconvertor[tdata] or pip install opentele"
+            )
         if self.user_id is None:
             raise ValueError("user_id is required for TDataSession")
         return TDataSession(
