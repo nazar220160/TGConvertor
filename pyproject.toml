@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgconvertor"
-version = "0.1.2"
+version = "0.1.3"
 description = "This module is small util for easy converting Telegram sessions to various formats."
 readme = "README.md"
 requires-python = ">=3.10, <3.14"
