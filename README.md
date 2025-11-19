@@ -101,3 +101,7 @@ await session.to_pyrogram_file('new_session.session')
 
 ## Donate
 **USDT (BEP20):** `0x34412717daaf427efa39c8508db4f62cce0d6d48`
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=nazar220160/TGConvertor&type=date&legend=top-left)](https://www.star-history.com/#nazar220160/TGConvertor&type=date&legend=top-left)
