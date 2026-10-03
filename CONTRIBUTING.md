@@ -71,7 +71,7 @@ Requests run sequentially, with a short pause. Explicit Telegram FloodWait respo
 2. Keep the existing repository/environment `PYPI_TOKEN` secret for compatibility, **or** configure [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/adding-a-publisher/) and then remove the token. The Trusted Publisher must identify owner `nazar220160`, repository `TGConvertor`, workflow `publish.yml`, and environment `pypi`.
 3. Tag the reviewed commit with exactly `v<project.version>`, for example `v0.2.0`, and push that tag.
 4. `publish.yml` runs the entire check workflow, verifies tag/version equality, downloads the tested distributions, and publishes them to PyPI. If `PYPI_TOKEN` is present, the token path is used; otherwise the job uses OIDC Trusted Publishing with attestations.
-5. Only after PyPI succeeds, the workflow creates the GitHub release with generated notes and the same wheel/sdist assets.
+5. Only after PyPI succeeds, the workflow creates the GitHub release with notes from the changelog and the same wheel/sdist assets.
 
 Configure tag rules and the `pypi` environment according to the repository's maintainer policy. The workflows use read-only permissions for checks, `id-token: write` only for publishing, and `contents: write` only for creating the GitHub release. A failed check or a mismatched tag blocks publication. Published PyPI versions cannot be replaced; use a new version for fixes.
 
