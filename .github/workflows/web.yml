@@ -1,0 +1,80 @@
+name: Web panel
+
+on:
+  push:
+    branches: [master]
+    paths: ['web/**', '.github/workflows/web.yml']
+  pull_request:
+    paths: ['web/**', '.github/workflows/web.yml']
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      library-version:
+        description: 'Published PyPI release/tag, or latest for regular builds'
+        type: string
+        default: latest
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web-${{ github.event_name == 'pull_request' && github.ref || 'deployment' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+      - run: python -m pip install '.[dev,tdata]'
+      - run: ruff check web
+      - run: ruff format --check web
+      - run: npm ci --prefix web
+      - run: npm run format:check --prefix web
+      - name: Bundle published PyPI library
+        env:
+          LIBRARY_VERSION: ${{ inputs.library-version || 'latest' }}
+        run: npm run update:library --prefix web -- "$LIBRARY_VERSION"
+      - name: Generate native synthetic sessions and crypto vectors
+        run: python web/tests/generate_fixtures.py "$RUNNER_TEMP/web-fixtures"
+      - name: Test all conversion directions in browser Python
+        run: npm test --prefix web -- "$RUNNER_TEMP/web-fixtures"
+      - name: Independently validate exports using native readers
+        run: python web/tests/verify_outputs.py "$RUNNER_TEMP/web-fixtures"
+      - run: npm run build --prefix web
+      - run: npm run test:pwa --prefix web
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: github.event_name != 'pull_request'
+        with:
+          path: web/dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Deploy tested static panel
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,42 @@
+TGConvertor browser workspace — third-party notices
+
+The application uses unmodified third-party runtimes and pure Python packages.
+Full license and copyright notices are available at the following relative URLs:
+
+Pyodide 314.0.7 — Mozilla Public License 2.0
+Source: https://github.com/pyodide/pyodide/tree/314.0.7
+License: licenses/Pyodide-MPL-2.0.txt
+Source code is freely available from the link above.
+
+CPython — Python Software Foundation license and historical notices
+Source: https://github.com/python/cpython
+License: licenses/Python-PSF.txt
+
+PyCryptodome 3.23.0 — BSD / public domain
+Source: https://github.com/Legrandin/pycryptodome
+License: licenses/pycryptodome-LICENSE.rst
+Authors: licenses/pycryptodome-AUTHORS.rst
+
+TGConvertor — MIT (exact installed release is recorded in runtime-lock.json)
+Source: https://github.com/nazar220160/TGConvertor
+License: licenses/tgconvertor-LICENSE
+
+OpenTele2 1.2.1 — MIT
+Source: https://github.com/DedInc/opentele2
+License: licenses/opentele2-LICENSE
+
+Telethon 1.45.0 — MIT
+Source: https://github.com/LonamiWebs/Telethon
+License: licenses/telethon-LICENSE
+
+pyaes 1.6.1 — MIT
+Source: https://github.com/ricmoo/pyaes
+License: licenses/pyaes-LICENSE.txt
+
+python-rsa 4.9.1 — Apache License 2.0
+Source: https://github.com/sybrenstuvel/python-rsa
+License: licenses/rsa-LICENSE
+
+pyasn1 0.6.4 — BSD
+Source: https://github.com/pyasn1/pyasn1
+License: licenses/pyasn1-LICENSE.rst

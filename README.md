@@ -7,6 +7,8 @@
 
 Convert Telegram authorizations between **Telethon**, **Pyrogram / Kurigram**, and **Telegram Desktop tdata**. File reads and conversions are offline. Telegram clients are optional and only needed for explicit network operations.
 
+**[Try the browser workspace](https://nazar220160.github.io/TGConvertor/)** — free, no installation. Convert files, strings and tdata ZIPs locally on your device, or click **Try a demo**. Sessions are not uploaded and Telegram is not contacted. [Web panel details and self-hosting](web/README.md).
+
 > Session files and strings grant access to an account. Keep them private, use only accounts you own or are authorized to manage, and never commit them or paste them into issue reports.
 
 ## Installation

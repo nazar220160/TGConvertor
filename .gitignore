@@ -1,4 +1,9 @@
 # dev dep
+web/node_modules/
+web/public/runtime/
+web/dist/
+web/test-results/
+web/playwright-report/
 uv.lock
 main.py
 

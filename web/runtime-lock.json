@@ -1,0 +1,46 @@
+{
+  "packages": [
+    {
+      "name": "tgconvertor",
+      "version": "0.2.0",
+      "filename": "tgconvertor-0.2.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/ef/f4/d89d99dec770097127549b22061528c0888a98c47ba0c3c40b5c9a0c13a6/tgconvertor-0.2.0-py3-none-any.whl",
+      "sha256": "ec6494a4cb95756590fc522b2c745360aec8c374e702bf58e027c66690b7b5f4"
+    },
+    {
+      "name": "opentele2",
+      "version": "1.2.1",
+      "filename": "opentele2-1.2.1-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/5d/7a/d34edbeac14bc3a960ca5c006ee964817d3df7279dfa37fbbfb0552a3a54/opentele2-1.2.1-py3-none-any.whl",
+      "sha256": "d94d79dfe5c31553ab5448767da92fa39c366b1d012534c5ce5aa24151dce561"
+    },
+    {
+      "name": "telethon",
+      "version": "1.45.0",
+      "filename": "telethon-1.45.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/92/ac/241c09e6905215f225d8088438ceb1f32cc4b4865f3f49068cb402debfd7/telethon-1.45.0-py3-none-any.whl",
+      "sha256": "339e24c83aedc9f12cbe389264627edc49779e4289c535aa90aafc4ce62f7972"
+    },
+    {
+      "name": "pyaes",
+      "version": "1.6.1",
+      "filename": "pyaes-1.6.1.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/44/66/2c17bae31c906613795711fc78045c285048168919ace2220daa372c7d72/pyaes-1.6.1.tar.gz",
+      "sha256": "02c1b1405c38d3c370b085fb952dd8bea3fadcee6411ad99f312cc129c536d8f"
+    },
+    {
+      "name": "rsa",
+      "version": "4.9.1",
+      "filename": "rsa-4.9.1-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/64/8d/0133e4eb4beed9e425d9a98ed6e081a55d195481b7632472be1af08d2f6b/rsa-4.9.1-py3-none-any.whl",
+      "sha256": "68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762"
+    },
+    {
+      "name": "pyasn1",
+      "version": "0.6.4",
+      "filename": "pyasn1-0.6.4-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/9a/3b/6163796d69c3977d1e4287bea4a6979161cbbdd170ebb430511e8e1999ce/pyasn1-0.6.4-py3-none-any.whl",
+      "sha256": "deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b"
+    }
+  ]
+}

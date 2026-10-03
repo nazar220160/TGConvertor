@@ -1,0 +1,22 @@
+{
+  "name": "tgconvertor-web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:runtime": "python3 scripts/prepare_runtime.py",
+    "update:library": "python3 scripts/prepare_runtime.py --tgconvertor-version",
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && node scripts/build_pwa.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node tests/engine.test.mjs",
+    "test:pwa": "node --test tests/pwa.test.mjs",
+    "format:check": "prettier --check src/*.ts src/*.css scripts/*.mjs scripts/*.js tests/*.mjs *.json *.ts *.html public/*.webmanifest"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "pyodide": "314.0.7",
+    "typescript": "7.0.2",
+    "vite": "8.3.2"
+  }
+}

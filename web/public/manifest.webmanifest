@@ -1,0 +1,14 @@
+{
+  "id": "./",
+  "name": "TGConvertor — Session workspace",
+  "short_name": "TGConvertor",
+  "description": "Convert Telegram sessions privately on your device, including offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7fa",
+  "theme_color": "#6655d6",
+  "icons": [
+    { "src": "./app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
