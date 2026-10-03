@@ -6,6 +6,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import sysconfig
 from contextlib import closing
 from pathlib import Path
 
@@ -272,7 +273,7 @@ async def test_real_cli_process_every_direction(
         source, source_kind, target_kind, session, tmp_path, stdin=stdin
     )
     # Run the actual installed entry point outside the checkout, with piped strings.
-    executable = Path(sys.executable).parent / (
+    executable = Path(sysconfig.get_path("scripts")) / (
         "tgconvertor.exe" if os.name == "nt" else "tgconvertor"
     )
     assert executable.is_file(), "The distribution's console entry point must be installed"

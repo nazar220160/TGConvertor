@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import socket
 import subprocess
 import sys
@@ -14,14 +15,27 @@ def test_guard_blocks_connections_even_to_loopback(operation, host):
         getattr(sock, operation)((host, 443))
 
 
-def test_guard_allows_stdlib_tcp_socketpair():
-    # Force the TCP fallback used on Windows, including on POSIX runners.
-    from socket import _fallback_socketpair
+def tcp_socketpair():
+    """Reproduce Windows' local TCP wakeup pipe on every supported Python."""
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        client = socket.socket()
+        try:
+            client.connect(listener.getsockname())
+            server, _ = listener.accept()
+        except BaseException:
+            client.close()
+            raise
+    return server, client
+
+
+def test_guard_allows_tcp_socketpair():
 
     from ._network_guard import install_network_guard
 
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(socket, "socketpair", _fallback_socketpair)
+        patch.setattr(socket, "socketpair", tcp_socketpair)
         install_network_guard(patch.setattr)
         first, second = socket.socketpair()
         with closing(first), closing(second):
@@ -35,12 +49,12 @@ def test_guard_allows_stdlib_tcp_socketpair():
 
 
 def test_guard_in_asyncio_subprocess(offline_process_env, tmp_path):
-    code = """
-import asyncio
-import socket
-from socket import _fallback_socketpair
+    code = (
+        "import asyncio\nimport socket\n"
+        + inspect.getsource(tcp_socketpair)
+        + """
 # Simulate Windows before installing a fresh guard around the TCP fallback.
-socket.socketpair = _fallback_socketpair
+socket.socketpair = tcp_socketpair
 from sitecustomize import install_network_guard
 install_network_guard()
 asyncio.run(asyncio.sleep(0))
@@ -53,6 +67,7 @@ for operation in ('connect', 'connect_ex'):
         else:
             raise AssertionError('Network guard did not block the connection')
 """
+    )
     result = subprocess.run(
         [sys.executable, "-c", code],
         cwd=tmp_path,

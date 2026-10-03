@@ -186,9 +186,9 @@ async def perform_conversion(
     else:
         import os
         import subprocess
-        import sys
+        import sysconfig
 
-        executable = Path(sys.executable).parent / (
+        executable = Path(sysconfig.get_path("scripts")) / (
             "tgconvertor.exe" if os.name == "nt" else "tgconvertor"
         )
         result = await asyncio.to_thread(
