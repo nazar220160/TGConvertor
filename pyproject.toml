@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgconvertor"
-version = "0.2.0"
-description = "Offline conversion of Telegram sessions between Telethon, Pyrogram, Kurigram and tdata."
+version = "0.3.0"
+description = "Offline conversion of Telegram sessions between Telethon, Pyrogram, Kurigram, GramJS and tdata."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Назар", email = "nazar.fedorowych@gmail.com"}]
 license = "MIT"
 license-files = ["LICENSE"]
-keywords = ["telegram", "session", "converter", "telethon", "pyrogram", "kurigram", "tdata"]
+keywords = ["telegram", "session", "converter", "telethon", "pyrogram", "kurigram", "gramjs", "tdata"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

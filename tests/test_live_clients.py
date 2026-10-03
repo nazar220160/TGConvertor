@@ -1,5 +1,7 @@
 """Offline verification of the exact native adapters used by the live suite."""
 
+import asyncio
+import hashlib
 import hmac
 from pathlib import Path
 
@@ -8,6 +10,7 @@ import pytest
 from TGConvertor.converter import load_session
 from TGConvertor.sessions.pyro import PyroSession
 
+from ._gramjs_helpers import gramjs
 from ._live_helpers import close_native, native_client, perform_conversion
 from .test_conversion_matrix import (
     KINDS,
@@ -55,7 +58,11 @@ async def test_live_native_adapter_and_producer_offline(
         passcode=OUTPUT_PASSCODE if kind == "tdata_encrypted" else "",
     )
     try:
-        if family == "pyrogram":
+        if family == "gramjs":
+            native = await asyncio.to_thread(gramjs, client)
+            assert native["keyHash"] == hashlib.sha256(session.auth_key).hexdigest()
+            assert native["dc"] == session.dc_id
+        elif family == "pyrogram":
             await client.storage.open()
             assert hmac.compare_digest(await client.storage.auth_key(), session.auth_key)
             assert await client.storage.user_id() == session.user_id

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — 2026-10-03
+
+### Added
+
+- GramJS 2 version 1 StringSession import/export, UTF-8 text files, public `GramSession` codec, and `SessionManager.from_gramjs_*` / `to_gramjs_*` methods. Conversion requires no Node.js dependency.
+- `gramjs` format in the one-call API, CLI and bilingual offline browser panel.
+- Preservation of GramJS DC, authorization key, IPv4/IPv6/ASCII hostname and port. Correct automatic detection of standard Base64 strings containing `/`.
+- Expanded conversion matrix: all 81 representation combinations through four public interfaces, plus native GramJS 2.26.22 reader/writer checks and opt-in Telegram authorization checks.
+- Candidate-wheel browser tests before PyPI publication; automatic Pages publication uses the released PyPI wheel only after release checks succeed.
+
+### Limits
+
+- GramJS file input/output contains `StringSession` text; `StoreSession` storage is not supported. Export its authorization as a StringSession first.
+- Owner/API/bot metadata is absent in StringSession. Pyrogram/tdata exports require an explicit real owner ID. Hostnames stay in GramJS; other endpoint codecs require IP addresses. Ports follow GramJS's signed 16-bit format.
+
 ## 0.2.0 — 2026-10-03
 
 ### Added

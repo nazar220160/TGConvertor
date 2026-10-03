@@ -22,6 +22,7 @@ async def main():
         user_id=2**40 + 17,
         api=APIData(12345, "0123456789abcdef0123456789abcdef"),
     )
+    await session.to_gramjs_file(destination / "gramjs_file.txt")
     await session.to_telethon_file(destination / "telethon_file.session")
     await session.to_pyrogram_file(destination / "pyrogram_file.session", backend="pyrogram")
     await session.to_pyrogram_file(destination / "kurigram_file.session", backend="kurigram")
@@ -37,6 +38,7 @@ async def main():
             {
                 "telethon_string": session.to_telethon_string(),
                 "pyrogram_string": session.to_pyrogram_string(),
+                "gramjs_string": session.to_gramjs_string(),
             }
         )
     )
@@ -81,7 +83,7 @@ async def main():
     ):
         for _ in range(65 * 16):
             member.write(bytes(65536))
-    print("Generated seven synthetic source representations and native crypto vectors")
+    print("Generated nine synthetic source representations and native crypto vectors")
 
 
 if __name__ == "__main__":

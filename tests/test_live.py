@@ -123,6 +123,8 @@ async def live_account(tmp_path_factory):
                         )
                     elif kind == "telethon_file":
                         await seed.to_telethon_file(output)
+                    elif kind == "gramjs_file":
+                        await seed.to_gramjs_file(output)
                     else:
                         await seed.to_pyrogram_file(output, backend=format_backend(kind))
                     inputs[kind] = output

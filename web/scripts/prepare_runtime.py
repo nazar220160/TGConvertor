@@ -31,6 +31,11 @@ def main():
         default="latest",
         help="latest (default), an explicit PyPI release/tag, or pinned for reproduction",
     )
+    parser.add_argument(
+        "--development-wheel",
+        type=Path,
+        help="Local wheel for pre-release tests; never updates the PyPI pin",
+    )
     args = parser.parse_args()
     DEST.mkdir(parents=True, exist_ok=True)
     packages = json.loads(LOCK.read_text())["packages"]
@@ -39,7 +44,34 @@ def main():
         or {p["name"] for p in packages} != EXPECTED_PACKAGES
     ):
         raise ValueError("runtime-lock.json must contain exactly the expected browser packages")
-    if args.tgconvertor_version != "pinned":
+    if args.development_wheel:
+        wheel = args.development_wheel.resolve()
+        data = wheel.read_bytes()
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            from email.parser import BytesParser
+
+            metadata = BytesParser().parsebytes(
+                archive.read(
+                    next(
+                        name for name in archive.namelist() if name.endswith(".dist-info/METADATA")
+                    )
+                )
+            )
+        if metadata["Name"].lower() != "tgconvertor" or not wheel.name.endswith("-none-any.whl"):
+            raise ValueError("Development wheel must be a pure Python TGConvertor distribution")
+        packages = [
+            {
+                "name": "tgconvertor",
+                "version": metadata["Version"],
+                "filename": wheel.name,
+                "url": wheel.as_uri(),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+            if p["name"] == "tgconvertor"
+            else p
+            for p in packages
+        ]
+    elif args.tgconvertor_version != "pinned":
         version_path = (
             ""
             if args.tgconvertor_version == "latest"
@@ -101,7 +133,9 @@ def main():
     wheels = []
     for package in packages:
         destination = DEST / package["filename"]
-        data = destination.read_bytes() if destination.exists() else get(package["url"])
+        data = destination.read_bytes() if destination.exists() else b""
+        if hashlib.sha256(data).hexdigest() != package["sha256"]:
+            data = get(package["url"])
         if hashlib.sha256(data).hexdigest() != package["sha256"]:
             raise ValueError(f"Package checksum mismatch: {package['name']}")
         destination.write_bytes(data)
@@ -133,7 +167,10 @@ def main():
     (DEST / "manifest.json").write_text(
         json.dumps({"version": version, "pyodide": "314.0.7", "archives": wheels}) + "\n"
     )
-    if args.tgconvertor_version != "pinned":
+    for obsolete in DEST.glob("tgconvertor-*.whl"):
+        if obsolete.name not in wheels:
+            obsolete.unlink()
+    if args.tgconvertor_version != "pinned" and not args.development_wheel:
         # Change the committed pin only after all package downloads are verified.
         LOCK.write_text(json.dumps({"packages": packages}, indent=2) + "\n")
     print(f"Bundled TGConvertor {version}, Pyodide and {len(wheels)} verified packages in {DEST}")

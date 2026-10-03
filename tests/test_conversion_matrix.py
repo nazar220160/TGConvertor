@@ -1,6 +1,7 @@
 """Every supported input representation to every output, through each public interface."""
 
 import asyncio
+import hashlib
 import importlib.util
 import os
 import sqlite3
@@ -27,8 +28,10 @@ KINDS = (
     "pyrogram_string",
     "tdata_plain",
     "tdata_encrypted",
+    "gramjs_file",
+    "gramjs_string",
 )
-STRING_KINDS = ("telethon_string", "pyrogram_string")
+STRING_KINDS = ("telethon_string", "pyrogram_string", "gramjs_string")
 SOURCE_PASSCODE = "source-local-passcode"
 OUTPUT_PASSCODE = "different-output-passcode"
 
@@ -36,6 +39,8 @@ OUTPUT_PASSCODE = "different-output-passcode"
 def format_of(kind):
     if kind.startswith("telethon"):
         return "telethon"
+    if kind.startswith("gramjs"):
+        return "gramjs"
     return "tdata" if kind.startswith("tdata") else "pyrogram"
 
 
@@ -62,6 +67,8 @@ async def matrix_source(source_kind, target_kind, session, tmp_path):
         source = directory / "original.session"
         if source_kind == "telethon_file":
             await session.to_telethon_file(source)
+        elif source_kind == "gramjs_file":
+            await session.to_gramjs_file(source)
         else:
             await session.to_pyrogram_file(source, backend=format_backend(source_kind))
     return source, directory, snapshot(directory)
@@ -94,7 +101,7 @@ async def assert_output(result, source_kind, target_kind, session):
     assert restored.auth_key == session.auth_key
     assert restored.dc_id == session.dc_id
     assert restored.test_mode is False
-    if target_format == "telethon":
+    if target_format in ("telethon", "gramjs"):
         assert restored.user_id is None
         assert restored.server_address == session.telethon.server_address
         assert restored.port == session.telethon.port
@@ -113,6 +120,16 @@ async def assert_output(result, source_kind, target_kind, session):
             )
             cols = {row[1] for row in db.execute("PRAGMA table_info(sessions)")}
             assert ("server_address" in cols) == (target_kind == "kurigram_file")
+    if target_format == "gramjs" and os.getenv("TGCONVERTOR_GRAMJS_REQUIRED") == "1":
+        from ._gramjs_helpers import gramjs
+
+        native = await asyncio.to_thread(
+            gramjs, {"session": result if isinstance(result, str) else result.read_text().strip()}
+        )
+        assert native["dc"] == session.dc_id
+        assert native["keyHash"] == hashlib.sha256(session.auth_key).hexdigest()
+        assert native["address"] == restored.server_address
+        assert native["port"] == restored.port
     # Independently open every output with its native client when that extra is present.
     if target_format == "telethon" and importlib.util.find_spec("telethon"):
         from telethon.sessions import SQLiteSession, StringSession
@@ -199,7 +216,7 @@ async def test_manager_every_direction(source_kind, target_kind, matrix_source, 
         loaded = getattr(SessionManager, f"from_{source_format}_string")(source, session.api)
     else:
         loaded = await getattr(SessionManager, f"from_{source_format}_file")(source, session.api)
-    if source_format == "telethon":
+    if source_format in ("telethon", "gramjs"):
         loaded.user_id = session.user_id  # Required owner metadata, supplied explicitly.
     destination = destination_for(target_kind, tmp_path)
     target_format = format_of(target_kind)
@@ -212,6 +229,8 @@ async def test_manager_every_direction(source_kind, target_kind, matrix_source, 
             )
         elif target_format == "pyrogram":
             await loaded.to_pyrogram_file(destination, backend=format_backend(target_kind))
+        elif target_format == "gramjs":
+            await loaded.to_gramjs_file(destination)
         else:
             await loaded.to_telethon_file(destination)
         result = destination
@@ -330,6 +349,6 @@ async def test_info_every_file_representation(source_kind, target_kind, matrix_s
     assert session.auth_key.hex() not in result.output
     assert session.to_telethon_string() not in result.output
     assert session.to_pyrogram_string() not in result.output
-    if source_kind != "telethon_file":
+    if source_kind not in ("telethon_file", "gramjs_file"):
         assert str(session.user_id) in result.output
     assert snapshot(directory) == before

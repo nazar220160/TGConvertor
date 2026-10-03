@@ -8,7 +8,7 @@ from .exceptions import ValidationError
 from .manager import SessionManager
 from .sessions._utils import validate_fields
 
-FORMATS = ("telethon", "pyrogram", "tdata")
+FORMATS = ("telethon", "pyrogram", "gramjs", "tdata")
 
 
 async def load_session(
@@ -33,6 +33,15 @@ async def load_session(
             passcode=passcode,
             account_index=account_index,
             api=api,
+        )
+    if input_type == "auto" and from_format == "gramjs":
+        # Standard Base64 may contain '/', so it must not be treated as a path.
+        input_type = (
+            "string"
+            if isinstance(source, str)
+            and len(source) >= 128
+            and not any(c in source for c in ".\\")
+            else "file"
         )
     if input_type == "auto":
         # URL-safe session strings have no path separators or dots.
@@ -90,6 +99,8 @@ async def convert(
         await session.to_tdata_folder(path, passcode=output_passcode)
     elif to_format == "pyrogram":
         await session.to_pyrogram_file(path, backend=backend)
+    elif to_format == "gramjs":
+        await session.to_gramjs_file(path)
     else:
         await session.to_telethon_file(path)
     return path

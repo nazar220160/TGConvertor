@@ -8,7 +8,7 @@
 [![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nazar220160/TGConvertor/blob/master/LICENSE)
 
-Convert Telegram authorizations between **Telethon**, **Pyrogram / Kurigram**, and **Telegram Desktop tdata**. File reads and conversions are offline. Telegram clients are optional and only needed for explicit network operations.
+Convert Telegram authorizations between **Telethon**, **Pyrogram / Kurigram**, **GramJS**, and **Telegram Desktop tdata**. File reads and conversions are offline. Telegram clients are optional and only needed for explicit network operations.
 
 [![Open web converter](https://img.shields.io/badge/Open_web_converter-6655d6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://nazar220160.github.io/TGConvertor/)
 [![Install from PyPI](https://img.shields.io/badge/Install_from_PyPI-3776AB?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/tgconvertor/)
@@ -33,7 +33,7 @@ Requires **Python 3.10+**. CI tests Python **3.10–3.14**, with additional Wind
 python -m pip install --upgrade tgconvertor
 ```
 
-The base package converts Telethon and Pyrogram/Kurigram files and strings without either client installed. Install extras only for the features you need:
+The base package converts Telethon, GramJS and Pyrogram/Kurigram files and strings without either client installed. Install extras only for the features you need:
 
 ```bash
 python -m pip install --upgrade 'tgconvertor[telethon]'  # Telethon client / network validation
@@ -69,9 +69,9 @@ python -m TGConvertor --version
 
 `--output string` also selects stdout. Omitting `--output` never writes over the input. Diagnostics and file-save messages go to stderr. `--input-type file` or `--input-type string` overrides automatic detection, including for unusual filenames.
 
-### Telethon → Pyrogram / Kurigram
+### Telethon / GramJS → Pyrogram / Kurigram
 
-Telethon strings and SQLite files do **not** reliably store the owner's user ID. A cached contact is not the owner. Supply the real ID explicitly:
+Telethon strings/SQLite files and GramJS strings do **not** reliably store the owner's user ID. A cached contact is not the owner. Supply the real ID explicitly:
 
 ```bash
 tgconvertor convert telethon.session -f telethon -t pyrogram \
@@ -81,6 +81,41 @@ tgconvertor convert telethon.session -f telethon -t pyrogram \
 `--backend pyrogram` writes Pyrogram 2's SQLite schema. `--backend kurigram` writes Kurigram's schema. The default `auto` selects the installed client; with neither installed, it writes Pyrogram 2's schema. Both use the same current string-session format. Reading either schema never requires the corresponding client.
 
 Pyrogram output preserves a source Pyrogram API ID. Sources without an API ID use the selected API configuration (Desktop compatibility preset by default). For a custom application, set both `TGCONVERTOR_API_ID` and `TGCONVERTOR_API_HASH` in your environment, or pass `APIData` through the Python API. Obtain your application credentials from [my.telegram.org](https://my.telegram.org).
+
+### GramJS (JavaScript / TypeScript)
+
+Convert the version 1 `StringSession` used by [GramJS 2](https://gram.js.org/getting-started/authorization). No Node.js dependency is needed for Python conversion.
+
+```bash
+# Telethon → GramJS string; no owner ID is needed
+tgconvertor convert telethon.session -f telethon -t gramjs > gramjs.txt
+
+# GramJS string saved in a UTF-8 file → Kurigram SQLite
+tgconvertor convert gramjs.txt -f gramjs -t pyrogram --user-id 123456789 \
+  --backend kurigram -o kurigram.session
+
+# GramJS string from stdin → Telethon SQLite
+cat gramjs.txt | tgconvertor convert - -f gramjs -t telethon -o telethon.session
+```
+
+In JavaScript, read the exported text and pass it to the native client:
+
+```javascript
+import fs from 'node:fs';
+import { TelegramClient } from 'telegram';
+import { StringSession } from 'telegram/sessions/index.js';
+
+const session = new StringSession(fs.readFileSync('gramjs.txt', 'utf8').trim());
+const client = new TelegramClient(session, apiId, apiHash, {});
+await client.connect();
+try {
+  const me = await client.getMe();
+} finally {
+  await client.disconnect();
+}
+```
+
+`gramjs` file output is a private UTF-8 `.txt` containing a `StringSession`, not a SQLite database. GramJS `StoreSession` folders / browser localStorage are not supported: copy the connected session’s DC, address, port and auth key into a new `StringSession`, then call its `save()` method. GramJS strings retain DC, authorization key, address and port, but have no owner ID, bot flag, API ID or takeout ID. Supply `user_id` for Pyrogram or tdata output. IPv4 and IPv6 endpoints convert in all directions. ASCII hostnames are preserved for GramJS output; Telethon and Pyrogram endpoint codecs require IP addresses and conversion never resolves DNS. GramJS uses signed 16-bit ports (1–32767); its address field must fit 4–100 bytes for reliable native loading.
 
 ### Telegram Desktop tdata
 
@@ -143,9 +178,11 @@ asyncio.run(main())
 | Telethon string | `SessionManager.from_telethon_string(value, api=...)` |
 | Pyrogram / Kurigram SQLite | `await SessionManager.from_pyrogram_file(path, api=...)` |
 | Pyrogram / Kurigram string | `SessionManager.from_pyrogram_string(value, api=...)` |
+| GramJS UTF-8 text | `await SessionManager.from_gramjs_file(path, api=...)` |
+| GramJS string | `SessionManager.from_gramjs_string(value, api=...)` |
 | Desktop tdata | `SessionManager.from_tdata_folder(path, passcode="", account_index=None, api=...)` |
 
-String exports are synchronous: `session.to_telethon_string()` and `session.to_pyrogram_string()`. File exports are asynchronous. The tdata loader is synchronous; use `await asyncio.to_thread(SessionManager.from_tdata_folder, path)` in an application where blocking the event loop matters.
+String exports are synchronous: `session.to_telethon_string()` , `session.to_pyrogram_string()` and `session.to_gramjs_string()`. File exports are asynchronous, including `await session.to_gramjs_file("gramjs.txt")`. The tdata loader is synchronous; use `await asyncio.to_thread(SessionManager.from_tdata_folder, path)` in an application where blocking the event loop matters.
 
 ### Explicit network validation and owner lookup
 
@@ -183,6 +220,7 @@ Compatibility presets remain available through `API.TelegramDesktop`, `API.Teleg
 | Telethon 1.x | SQLite authorization schema v7/v8 | Version 1, IPv4 and IPv6 | Stored endpoint, port and file takeout ID are retained |
 | Pyrogram 2 | SQLite v3 (also reads the legacy schema without API ID) | Current format and legacy 32/64-bit user-ID formats | API ID, owner, bot flag and test mode are retained where representable |
 | Kurigram 2 | SQLite v7 | Same session strings as Pyrogram | Select `backend="kurigram"` for Kurigram file output |
+| GramJS 2 | UTF-8 StringSession text | Version 1, IPv4/IPv6/ASCII hostname | Distinct codec; no native Node.js dependency required |
 | Desktop tdata | Directory via OpenTele2 | — | One selected account; local ASCII passcodes supported |
 
 The package converts **authorization data**, not a complete client backup. Entity/peer caches, usernames, update states, temporary keys, media-DC keys, and Desktop settings are not copied. Telethon strings cannot carry user IDs, bot flags, API IDs or takeout IDs; Pyrogram strings cannot carry custom server addresses. A conversion through those strings cannot retain the missing fields. Telethon 2's experimental session format is not supported.
@@ -197,7 +235,7 @@ See [CONTRIBUTING.md](https://github.com/nazar220160/TGConvertor/blob/master/CON
 
 Use [Discussions](https://github.com/nazar220160/TGConvertor/discussions) for questions and examples, or [issue forms](https://github.com/nazar220160/TGConvertor/issues/new/choose) for reproducible bugs and feature requests. Read the [security policy](SECURITY.md) before reporting a vulnerability. Contributions are welcome; include a synthetic reproduction and the checks relevant to your change.
 
-The offline suite uses synthetic authorizations and blocks outgoing network connections, including inside CLI subprocesses. It tests all 49 input/output representation combinations through `convert()`, `SessionManager`, the CLI, and the installed console command. CI verifies the base install, each extra independently, combined clients/tdata, lint/format checks, minimum CLI dependencies, package metadata, and installation of the built wheel. The publish workflow runs the same checks on the exact tagged commit before publishing the tested distributions. Live verification is a separate opt-in local test.
+The offline suite uses synthetic authorizations and blocks outgoing network connections, including inside CLI subprocesses. It tests all 81 input/output representation combinations through `convert()`, `SessionManager`, the CLI, and the installed console command. CI verifies the base install, each extra independently, combined clients/tdata, lint/format checks, minimum CLI dependencies, package metadata, and installation of the built wheel. The publish workflow runs the same checks on the exact tagged commit before publishing the tested distributions. Native GramJS 2.26.22 interoperability and browser/PWA tests are release gates. Live verification is a separate opt-in local test.
 
 ## Donate
 

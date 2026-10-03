@@ -2,7 +2,7 @@ import './style.css';
 import { registerOffline, type OfflineState } from './pwa';
 
 type Language = 'en' | 'ru';
-type Format = 'telethon' | 'pyrogram' | 'tdata';
+type Format = 'telethon' | 'pyrogram' | 'gramjs' | 'tdata';
 type Result = {
   error?: string;
   metadata?: { dc: number; userId: string | null; apiId: number; bot: boolean; testMode: boolean };
@@ -37,6 +37,7 @@ const copy = {
     zip: 'ZIP archive',
     drop: 'Drop your session here',
     dropZip: 'Drop a tdata ZIP here',
+    dropGram: 'Drop a StringSession .txt file here',
     dropText: 'or choose a file from your device',
     choose: 'Choose file',
     limit: 'Up to 32 MB · processed locally',
@@ -51,7 +52,7 @@ const copy = {
     zipOutput: 'tdata ZIP',
     owner: 'Owner user ID',
     ownerHint:
-      'Needed when converting a Telethon source to Pyrogram or tdata. Use the real account ID.',
+      'Needed when converting a Telethon or GramJS source to Pyrogram or tdata. Use the real account ID.',
     optional: 'If not stored in source',
     advanced: 'Additional options',
     advancedHint: 'Passcodes, account selection & API credentials',
@@ -100,7 +101,7 @@ const copy = {
     bot: 'Bot',
     human: 'User',
     offline: 'Authorization is not checked online.',
-    stepsTitle: 'One session. Four clients.',
+    stepsTitle: 'One session. Five clients.',
     steps: [
       'Choose a file or paste a string.',
       'Select the format you need.',
@@ -109,12 +110,12 @@ const copy = {
     footer: 'Free & open source',
     library: 'Powered by TGConvertor',
     helpTitle: 'A few things to know',
-    help: 'Telethon usually does not store the owner ID. tdata requires a production user account; bot and test-server exports are rejected. Only the selected account is converted. Messages and cache are not transferred.',
+    help: 'Telethon and GramJS do not store the owner ID. tdata requires a production user account; bot and test-server exports are rejected. Only the selected account is converted. Messages and cache are not transferred.',
     errorTitle: 'Check the source and options',
     reset: 'Workspace cleared',
     used: 'Session file · ZIP · session string',
     github: 'View source',
-    support: 'Supported: Telethon 1.x · Pyrogram 2 · Kurigram 2 · Desktop tdata',
+    support: 'Supported: Telethon 1.x · Pyrogram 2 · Kurigram 2 · GramJS 2 · Desktop tdata',
     clipboardError: 'Clipboard access is unavailable. Download the string instead.',
     encrypted: 'Local passcode protected',
     plain: 'No local passcode',
@@ -147,6 +148,7 @@ const copy = {
     zip: 'ZIP-архив',
     drop: 'Перетащите сессию сюда',
     dropZip: 'Перетащите ZIP с tdata',
+    dropGram: 'Перетащите .txt с StringSession',
     dropText: 'или выберите файл на устройстве',
     choose: 'Выбрать файл',
     limit: 'До 32 МБ · обработка локально',
@@ -160,7 +162,8 @@ const copy = {
     fileOutput: 'Файл сессии',
     zipOutput: 'tdata в ZIP',
     owner: 'ID владельца аккаунта',
-    ownerHint: 'Нужен при конвертации Telethon в Pyrogram или tdata. Укажите настоящий ID.',
+    ownerHint:
+      'Нужен при конвертации Telethon / GramJS в Pyrogram или tdata. Укажите настоящий ID.',
     optional: 'Если не сохранён в сессии',
     advanced: 'Дополнительные параметры',
     advancedHint: 'Пароли, выбор аккаунта и API',
@@ -209,7 +212,7 @@ const copy = {
     bot: 'Бот',
     human: 'Пользователь',
     offline: 'Авторизация в Telegram не проверяется.',
-    stepsTitle: 'Одна сессия. Четыре клиента.',
+    stepsTitle: 'Одна сессия. Пять клиентов.',
     steps: [
       'Выберите файл или вставьте строку.',
       'Укажите нужный формат.',
@@ -218,12 +221,12 @@ const copy = {
     footer: 'Бесплатно · открытый код',
     library: 'На базе TGConvertor',
     helpTitle: 'Полезно знать',
-    help: 'Telethon обычно не хранит ID владельца. Экспорт в tdata доступен для обычных аккаунтов на основном сервере; боты и тестовые сессии не поддерживаются. Конвертируется выбранный аккаунт. Сообщения и кэш не переносятся.',
+    help: 'Telethon и GramJS не хранят ID владельца. Экспорт в tdata доступен для обычных аккаунтов на основном сервере; боты и тестовые сессии не поддерживаются. Конвертируется выбранный аккаунт. Сообщения и кэш не переносятся.',
     errorTitle: 'Проверьте сессию и параметры',
     reset: 'Данные очищены',
     used: 'Файл сессии · ZIP · строка',
     github: 'Исходный код',
-    support: 'Поддержка: Telethon 1.x · Pyrogram 2 · Kurigram 2 · Desktop tdata',
+    support: 'Поддержка: Telethon 1.x · Pyrogram 2 · Kurigram 2 · GramJS 2 · Desktop tdata',
     clipboardError: 'Буфер обмена недоступен. Скачайте строку в файл.',
     encrypted: 'С локальным паролем',
     plain: 'Без локального пароля',
@@ -262,7 +265,7 @@ const icon = (name: string, size = 20) => {
 };
 const translate = (key: keyof typeof copy.en) => `<span data-i18n="${key}">${t(key)}</span>`;
 const formats =
-  '<option value="telethon">Telethon</option><option value="pyrogram">Pyrogram / Kurigram</option><option value="tdata">Telegram Desktop · tdata</option>';
+  '<option value="telethon">Telethon</option><option value="pyrogram">Pyrogram / Kurigram</option><option value="gramjs">GramJS · StringSession</option><option value="tdata">Telegram Desktop · tdata</option>';
 document.querySelector('#app')!.innerHTML = `
 <aside class="sidebar">
   <a class="brand" href="./" aria-label="TGConvertor"><span class="brand-mark">${icon('plane', 25)}</span><span>TGConvertor<small>SESSION TOOLS</small></span></a>
@@ -288,7 +291,7 @@ document.querySelector('#app')!.innerHTML = `
         <div id="demo-area" class="demo-area" hidden><span class="demo-orb">${icon('spark', 30)}</span><strong>${translate('demoTitle')}</strong><p>${translate('demoText')}</p><span class="demo-tag">${icon('check', 13)}${translate('demoActive')}</span></div>
       </article>
       <div class="flow-arrow">${icon('arrow', 22)}</div>
-      <article class="panel target-panel"><div class="panel-heading"><div class="heading-icon target">${icon('download')}</div><div><h2>${translate('destination')}</h2><p>Telethon · Pyrogram · Kurigram · tdata</p></div><span class="step-number">02</span></div>
+      <article class="panel target-panel"><div class="panel-heading"><div class="heading-icon target">${icon('download')}</div><div><h2>${translate('destination')}</h2><p>Telethon · Pyrogram · Kurigram · GramJS · tdata</p></div><span class="step-number">02</span></div>
         <label class="field-label" for="target-format">${translate('format')}</label><select id="target-format">${formats}</select>
         <label class="field-label output-label">${translate('resultType')}</label><div class="segments" id="output-modes"><button data-output="file" class="selected" type="button">${icon('file', 16)}<span id="output-file-label">${t('fileOutput')}</span></button><button data-output="string" type="button">&lt;/&gt; ${translate('string')}</button></div>
         <div id="backend-field" class="field-row"><label class="field-label" for="backend">${translate('schema')}</label><select id="backend"><option value="kurigram">Kurigram 2</option><option value="pyrogram">Pyrogram 2</option></select></div>
@@ -406,15 +409,18 @@ function updateForm() {
   });
   $('input-file-label').textContent = t(source === 'tdata' ? 'zip' : 'file');
   $('output-file-label').textContent = t(target === 'tdata' ? 'zipOutput' : 'fileOutput');
-  $('drop-title').textContent = selectedFile?.name || t(source === 'tdata' ? 'dropZip' : 'drop');
+  $('drop-title').textContent =
+    selectedFile?.name ||
+    (source === 'gramjs' ? t('dropGram') : t(source === 'tdata' ? 'dropZip' : 'drop'));
   $('drop-subtitle').textContent = selectedFile
     ? `${(selectedFile.size / 1024).toFixed(1)} KB · ${t('selected')}`
     : t('dropText');
   $('dropzone').classList.toggle('has-file', !!selectedFile);
-  $<HTMLInputElement>('file-input').accept = source === 'tdata' ? '.zip' : '.session,.db,.sqlite';
+  $<HTMLInputElement>('file-input').accept =
+    source === 'tdata' ? '.zip' : source === 'gramjs' ? '.txt,.session' : '.session,.db,.sqlite';
   $('backend-field').hidden = target !== 'pyrogram';
-  $('owner-field').hidden = target === 'telethon';
-  $('owner-hint').hidden = source !== 'telethon';
+  $('owner-field').hidden = target === 'telethon' || target === 'gramjs';
+  $('owner-hint').hidden = source !== 'telethon' && source !== 'gramjs';
   $('source-tdata-options').hidden = source !== 'tdata';
   $('target-tdata-options').hidden = target !== 'tdata';
 }
@@ -561,8 +567,8 @@ async function submit(action: 'inspect' | 'convert') {
   if (
     action === 'convert' &&
     inputMode !== 'demo' &&
-    value('source-format') === 'telethon' &&
-    value('target-format') !== 'telethon' &&
+    ['telethon', 'gramjs'].includes(value('source-format')) &&
+    ['pyrogram', 'tdata'].includes(value('target-format')) &&
     !userId
   ) {
     showError(t('noOwner'));

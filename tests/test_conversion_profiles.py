@@ -80,21 +80,25 @@ async def test_bot_and_test_dc_profiles(
 
 
 @pytest.mark.parametrize("interface", ["api", "cli"])
-@pytest.mark.parametrize("source_kind", ["telethon_file", "telethon_string"])
-@pytest.mark.parametrize("target_kind", KINDS[2:])
-async def test_owner_required_for_every_non_telethon_target(
+@pytest.mark.parametrize(
+    "source_kind", ["telethon_file", "telethon_string", "gramjs_file", "gramjs_string"]
+)
+@pytest.mark.parametrize(
+    "target_kind", [kind for kind in KINDS if format_of(kind) in ("pyrogram", "tdata")]
+)
+async def test_owner_required_for_every_identity_target(
     interface, source_kind, target_kind, session, tmp_path
 ):
-    if source_kind == "telethon_string":
-        source = session.to_telethon_string()
+    if source_kind.endswith("string"):
+        source = getattr(session, f"to_{format_of(source_kind)}_string")()
     else:
         source = tmp_path / "ownerless.session"
-        await session.to_telethon_file(source)
+        await getattr(session, f"to_{format_of(source_kind)}_file")(source)
     before = snapshot(tmp_path)
     destination = destination_for(target_kind, tmp_path)
     if interface == "api":
         with pytest.raises(ValidationError, match="user_id"):
-            await convert(source, "telethon", format_of(target_kind), destination)
+            await convert(source, format_of(source_kind), format_of(target_kind), destination)
     else:
         args, env, _ = cli_args(source, source_kind, target_kind, session, tmp_path)
         index = args.index("--user-id")

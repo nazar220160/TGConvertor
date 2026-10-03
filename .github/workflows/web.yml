@@ -39,6 +39,8 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      published: ${{ steps.runtime.outputs.published }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -55,10 +57,11 @@ jobs:
       - run: ruff format --check web
       - run: npm ci --prefix web
       - run: npm run format:check --prefix web
-      - name: Bundle published PyPI library
+      - name: Select published library or verify the pre-release wheel
+        id: runtime
         env:
-          LIBRARY_VERSION: ${{ inputs.library-version || github.event.workflow_run.head_branch || 'latest' }}
-        run: npm run update:library --prefix web -- "$LIBRARY_VERSION"
+          LIBRARY_VERSION: ${{ inputs.library-version || github.event.workflow_run.head_branch || '' }}
+        run: python web/scripts/select_runtime.py
       - name: Generate native synthetic sessions and crypto vectors
         run: python web/tests/generate_fixtures.py "$RUNNER_TEMP/web-fixtures"
       - name: Test all conversion directions in browser Python
@@ -68,12 +71,12 @@ jobs:
       - run: npm run build --prefix web
       - run: npm run test:pwa --prefix web
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && steps.runtime.outputs.published == 'true'
         with:
           path: web/dist
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && needs.build.outputs.published == 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10

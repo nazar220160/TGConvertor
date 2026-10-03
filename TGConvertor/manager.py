@@ -6,6 +6,7 @@ from pathlib import Path
 from .api import API, APIData
 from .exceptions import ValidationError
 from .sessions._utils import validate_fields
+from .sessions.gramjs import GramSession
 from .sessions.pyro import PyroSession
 from .sessions.tdata import TDataSession
 from .sessions.tele import TeleSession
@@ -39,7 +40,14 @@ class SessionManager:
         self.server_address, self.port, self.takeout_id = server_address, port, takeout_id
         self.user = self.client = None
         # Check the Pyrogram metadata even when the first export is to Telethon.
-        _ = self.pyrogram
+        _ = PyroSession(
+            dc_id=dc_id,
+            auth_key=auth_key,
+            user_id=user_id,
+            api_id=self.api_id,
+            test_mode=test_mode,
+            is_bot=is_bot,
+        )
 
     def __repr__(self):
         return f"SessionManager(dc_id={self.dc_id}, user_id={self.user_id}, test_mode={self.test_mode})"
@@ -88,6 +96,41 @@ class SessionManager:
     @classmethod
     def from_telethon_string(cls, string: str, api: APIData = API.TelegramDesktop):
         return cls._from_telethon(TeleSession.from_string(string), api)
+
+    @classmethod
+    def _from_gramjs(cls, session: GramSession, api: APIData):
+        return cls(
+            dc_id=session.dc_id,
+            auth_key=session.auth_key,
+            api=api,
+            server_address=session.server_address,
+            port=session.port,
+            test_mode=session.test_mode,
+        )
+
+    @classmethod
+    async def from_gramjs_file(cls, file: str | Path, api: APIData = API.TelegramDesktop):
+        return cls._from_gramjs(await GramSession.from_file(file), api)
+
+    @classmethod
+    def from_gramjs_string(cls, string: str, api: APIData = API.TelegramDesktop):
+        return cls._from_gramjs(GramSession.from_string(string), api)
+
+    async def to_gramjs_file(self, path: str | Path) -> None:
+        await self.gramjs.to_file(path)
+
+    def to_gramjs_string(self) -> str:
+        return self.gramjs.to_string()
+
+    @property
+    def gramjs(self) -> GramSession:
+        return GramSession(
+            dc_id=self.dc_id,
+            auth_key=self.auth_key,
+            server_address=self.server_address,
+            port=self.port,
+            test_mode=self.test_mode,
+        )
 
     @classmethod
     def _from_pyrogram(cls, session: PyroSession, api: APIData):

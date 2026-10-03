@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadPyodide } from 'pyodide';
+import { StringSession } from 'telegram/sessions/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fixtures = path.resolve(process.argv[2] || path.join(root, '../.test-envs/web-fixtures'));
@@ -23,6 +24,11 @@ for (const name of manifest.archives)
 await py.runPythonAsync(fs.readFileSync(path.join(root, 'src/browser_engine.py'), 'utf8'));
 const operation = py.globals.get('operate');
 const strings = JSON.parse(fs.readFileSync(path.join(fixtures, 'strings.json')));
+// Generate the GramJS input with its actual upstream writer.
+const gramSeed = new StringSession(strings.telethon_string);
+await gramSeed.load();
+strings.gramjs_string = gramSeed.save();
+fs.writeFileSync(path.join(fixtures, 'gramjs_file.txt'), strings.gramjs_string + '\n');
 const native = JSON.parse(fs.readFileSync(path.join(fixtures, 'crypto.json')));
 py.globals.set('vectors_json', JSON.stringify(native));
 py.runPython(`
@@ -40,10 +46,23 @@ const kinds = [
   'pyrogram_string',
   'tdata_plain',
   'tdata_encrypted',
+  'gramjs_file',
+  'gramjs_string',
 ];
 const format = (kind) =>
-  kind.startsWith('telethon') ? 'telethon' : kind.startsWith('tdata') ? 'tdata' : 'pyrogram';
-const inputFile = (kind) => (kind.startsWith('tdata') ? kind + '.zip' : kind + '.session');
+  kind.startsWith('telethon')
+    ? 'telethon'
+    : kind.startsWith('tdata')
+      ? 'tdata'
+      : kind.startsWith('gramjs')
+        ? 'gramjs'
+        : 'pyrogram';
+const inputFile = (kind) =>
+  kind.startsWith('tdata')
+    ? kind + '.zip'
+    : kind.startsWith('gramjs')
+      ? kind + '.txt'
+      : kind + '.session';
 let passed = 0;
 const outputs = [];
 async function call(payload, buffer) {
@@ -84,6 +103,23 @@ for (const source of kinds)
     if (result.bytes) fs.writeFileSync(path.join(fixtures, 'outputs', name), result.bytes);
     else fs.writeFileSync(path.join(fixtures, 'outputs', name), result.sessionString);
     outputs.push({ file: name, target, passcode: payload.options.outputPasscode });
+    if (format(target) === 'gramjs') {
+      const nativeSession = new StringSession(
+        result.sessionString || Buffer.from(result.bytes).toString().trim(),
+      );
+      await nativeSession.load();
+      assert.equal(nativeSession.dcId, 2);
+      assert.equal(nativeSession.serverAddress, gramSeed.serverAddress);
+      assert.equal(nativeSession.port, 443);
+      assert.deepEqual(
+        nativeSession.authKey.getKey(),
+        Buffer.from(Array.from({ length: 256 }, (_, i) => i)),
+      );
+      assert.equal(
+        new StringSession(nativeSession.save()).serverAddress,
+        nativeSession.serverAddress,
+      );
+    }
     const inspect = await call(
       {
         action: 'inspect',
@@ -98,15 +134,15 @@ for (const source of kinds)
     assert.equal(inspect.metadata.dc, 2);
     assert.equal(
       inspect.metadata.userId ?? null,
-      format(target) === 'telethon' ? null : '1099511627793',
+      ['telethon', 'gramjs'].includes(format(target)) ? null : '1099511627793',
     );
     passed++;
   }
 fs.writeFileSync(path.join(fixtures, 'outputs/manifest.json'), JSON.stringify(outputs));
 
 // All demo modes use the real API and never represent a real authorization.
-for (const source of ['telethon', 'pyrogram', 'tdata'])
-  for (const target of ['telethon', 'pyrogram', 'tdata']) {
+for (const source of ['telethon', 'pyrogram', 'gramjs', 'tdata'])
+  for (const target of ['telethon', 'pyrogram', 'gramjs', 'tdata']) {
     const result = await call({
       sourceFormat: source,
       targetFormat: target,
@@ -118,7 +154,7 @@ for (const source of ['telethon', 'pyrogram', 'tdata'])
     assert.ok(result.bytes.length);
     passed++;
   }
-for (const sourceFormat of ['telethon', 'pyrogram']) {
+for (const sourceFormat of ['telethon', 'pyrogram', 'gramjs']) {
   const result = await call({
     sourceFormat,
     targetFormat: 'telethon',

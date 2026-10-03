@@ -1,6 +1,6 @@
 {
   "name": "tgconvertor-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
   "devDependencies": {
     "prettier": "3.9.9",
     "pyodide": "314.0.7",
+    "telegram": "2.26.22",
     "typescript": "7.0.2",
     "vite": "8.3.2"
   }

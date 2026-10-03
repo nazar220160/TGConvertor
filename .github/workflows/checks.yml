@@ -77,8 +77,38 @@ jobs:
       - run: python -m pip check
       - run: python -m pytest -m 'not live'
 
+  gramjs-browser:
+    name: Native GramJS and browser interoperability
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TGCONVERTOR_GRAMJS_REQUIRED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: python -m pip install '.[dev,telethon,kurigram,tdata]'
+      - run: npm ci --prefix web
+      - run: npm run format:check --prefix web
+      - run: python -m pytest tests/test_gramjs.py tests/test_conversion_matrix.py tests/test_live_clients.py -m 'not live'
+      - run: python -m build --wheel --outdir "$RUNNER_TEMP/browser-wheel"
+      - name: Bundle the exact candidate wheel for browser tests
+        shell: bash
+        run: python web/scripts/prepare_runtime.py --development-wheel "$RUNNER_TEMP"/browser-wheel/*.whl
+      - run: python web/tests/generate_fixtures.py "$RUNNER_TEMP/web-fixtures"
+      - run: npm test --prefix web -- "$RUNNER_TEMP/web-fixtures"
+      - run: python web/tests/verify_outputs.py "$RUNNER_TEMP/web-fixtures"
+      - run: npm run build --prefix web
+      - run: npm run test:pwa --prefix web
+
   build:
-    needs: [lint, tests, minimum-dependencies]
+    needs: [lint, tests, minimum-dependencies, gramjs-browser]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

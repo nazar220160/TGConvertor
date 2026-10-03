@@ -30,6 +30,7 @@ app = typer.Typer(
 class SessionFormat(str, Enum):
     TELETHON = "telethon"
     PYROGRAM = "pyrogram"
+    GRAMJS = "gramjs"
     TDATA = "tdata"
 
 
@@ -190,6 +191,7 @@ def list_formats():
     table = Table(title="Supported session formats")
     table.add_column("Format")
     table.add_column("Input / output")
+    table.add_row("gramjs", "GramJS 2 StringSession strings and UTF-8 text files")
     table.add_row("telethon", "Telethon 1.x SQLite files and strings")
     table.add_row(
         "pyrogram", "Pyrogram 2 / Kurigram SQLite files and strings (user_id required for output)"

@@ -239,7 +239,11 @@ async def operate(payload_json, file_bytes=None):
                         archive.write(file, "tdata/" + file.relative_to(result).as_posix())
             return {"metadata": info, "bytes": buffer.getvalue(), "filename": "tdata.zip"}
         backend = payload.get("backend", "pyrogram") if target == "pyrogram" else target
-        return {"metadata": info, "bytes": result.read_bytes(), "filename": f"{backend}.session"}
+        return {
+            "metadata": info,
+            "bytes": result.read_bytes(),
+            "filename": f"{backend}.txt" if target == "gramjs" else f"{backend}.session",
+        }
     except (ValueError, OSError, ImportError, zipfile.BadZipFile) as exc:
         # Error messages are deliberate library diagnostics, never submitted content.
         return {"error": str(exc)}

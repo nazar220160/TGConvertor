@@ -1,13 +1,16 @@
 """Native SDK adapters for opt-in live checks; no login or authorization creation."""
 
 import asyncio
+import hashlib
 import hmac
 from contextlib import suppress
 from pathlib import Path
+from types import SimpleNamespace
 
 from TGConvertor import SessionManager, convert
 from TGConvertor.__main__ import app
 
+from ._gramjs_helpers import gramjs
 from .test_conversion_matrix import (
     OUTPUT_PASSCODE,
     SOURCE_PASSCODE,
@@ -21,6 +24,12 @@ from .test_conversion_matrix import (
 
 async def native_client(kind, value, api, *, passcode=""):
     """Open the actual output with its upstream SDK, independently of our readers."""
+    if kind.startswith("gramjs"):
+        return {
+            "session": value if isinstance(value, str) else value.read_text().strip(),
+            "apiId": api.api_id,
+            "apiHash": api.api_hash,
+        }, "gramjs"
     if kind.startswith("telethon"):
         from telethon import TelegramClient
         from telethon.sessions import SQLiteSession, StringSession
@@ -77,6 +86,8 @@ async def native_client(kind, value, api, *, passcode=""):
 
 
 async def close_native(client, family):
+    if family == "gramjs":
+        return
     if family == "pyrogram":
         if client.is_connected:
             await client.disconnect()
@@ -93,6 +104,15 @@ async def close_native(client, family):
 
 async def native_identity(client, family, *, expected_key=None):
     """Require a server response, preserving the original authorization key."""
+    if family == "gramjs":
+        if expected_key is None:
+            raise RuntimeError("GramJS live checks require the original key digest")
+        native = await asyncio.to_thread(
+            gramjs,
+            client
+            | {"action": "live", "expectedKeyHash": hashlib.sha256(expected_key).hexdigest()},
+        )
+        return SimpleNamespace(id=int(native["id"]), bot=native["bot"])
     try:
         await client.connect()
         key = (
@@ -157,7 +177,7 @@ async def perform_conversion(
         )
     if interface == "manager":
         loaded = await manager_load(source, source_kind, seed.api)
-        if source_kind.startswith("telethon"):
+        if format_of(source_kind) in ("telethon", "gramjs"):
             loaded.user_id = seed.user_id
         if destination is None:
             return getattr(loaded, f"to_{format_of(target_kind)}_string")()
@@ -168,6 +188,8 @@ async def perform_conversion(
             )
         elif target_kind.startswith("telethon"):
             await loaded.to_telethon_file(destination)
+        elif target_kind.startswith("gramjs"):
+            await loaded.to_gramjs_file(destination)
         else:
             await loaded.to_pyrogram_file(destination, backend=format_backend(target_kind))
         return destination
