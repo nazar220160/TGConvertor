@@ -163,3 +163,14 @@ wheelhouse/
 # Optional: ignore virtualenv wrapper files
 .python-version
 # End
+
+# Local compatibility environments and Telegram credentials
+.test-envs/
+.ruff_cache/
+*.session
+*.session-*
+*.session-journal
+*.session-wal
+*.session-shm
+tdata/
+.tgconvertor-*/

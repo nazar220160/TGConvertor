@@ -1,52 +1,78 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=84.0.0,<85"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgconvertor"
-version = "0.1.4"
-description = "This module is small util for easy converting Telegram sessions to various formats."
+version = "0.2.0"
+description = "Offline conversion of Telegram sessions between Telethon, Pyrogram, Kurigram and tdata."
 readme = "README.md"
-requires-python = ">=3.10, <3.14"
+requires-python = ">=3.10"
 authors = [{name = "Назар", email = "nazar.fedorowych@gmail.com"}]
-license = {text = "MIT"}
-keywords = ["telegram", "session", "converter", "telethon", "pyrogram"]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["telegram", "session", "converter", "telethon", "pyrogram", "kurigram", "tdata"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Communications :: Chat",
 ]
-dependencies = [
-    "typer>=0.9.0",
-    "rich>=13.0.0",
-    "typing-extensions>=4.0.0",
-    "aiosqlite",
-]
+dependencies = ["typer>=0.27.2,<1", "rich>=15.0.0,<16"]
 
 [project.optional-dependencies]
-pyrogram = ["pyrogram"]
-kurigram = ["kurigram"]
-tdata = ["opentele"]
+telethon = ["telethon>=1.45.0,<2"]
+pyrogram = ["pyrogram>=2.0.106,<3"]
+kurigram = ["kurigram>=2.2.26,<3"]
+tdata = ["opentele2>=1.2.1,<2", "telethon>=1.45.0,<2"]
+dev = [
+    "pytest>=9.1.1,<10", "pytest-asyncio>=1.4.0,<2", "pytest-cov>=7.1.0,<8",
+    "ruff>=0.16.10,<1", "build>=1.6.1,<2", "twine>=7.0.0,<8",
+]
 
 [project.urls]
 Homepage = "https://github.com/nazar220160/TGConvertor"
-Repository = "https://github.com/nazar220160/TGConvertor.git"
+Repository = "https://github.com/nazar220160/TGConvertor"
 Issues = "https://github.com/nazar220160/TGConvertor/issues"
-Changelog = "https://github.com/nazar220160/TGConvertor/releases"
+Changelog = "https://github.com/nazar220160/TGConvertor/blob/master/CHANGELOG.md"
 
 [project.scripts]
-tgconvertor = "TGConvertor.__main__:app"
+tgconvertor = "TGConvertor.__main__:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
 include = ["TGConvertor*"]
 
-[tool.setuptools.package-data]
-TGConvertor = ["sessions/*"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: offline interoperability with optional third-party clients",
+    "live: explicit opt-in network test using a local Telegram authorization",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["TGConvertor"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 85
+exclude_also = ["if __name__ == .__main__.:", "raise NotImplementedError"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]

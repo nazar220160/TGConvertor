@@ -1,52 +1,45 @@
+"""Command-line interface; string output is suitable for piping."""
+
 import asyncio
+import os
+import sys
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
+
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from .manager import SessionManager
-from .exceptions import ValidationError
+from . import __version__
 from .api import API, APIData
+from .converter import convert as convert_session
+from .converter import load_session
+from .exceptions import ValidationError
 
-
-console = Console()
+console = Console(stderr=True, markup=False)
 app = typer.Typer(
     name="tgconvertor",
-    help="[bold green]Telegram Session Converter[/bold green] - Convert between different Telegram session formats",
+    help="Convert Telegram session files, strings and tdata offline.",
     add_completion=False,
+    no_args_is_help=True,
+    pretty_exceptions_enable=False,
 )
 
 
-def is_source_file_check(s: str) -> bool:
-    try:
-        p = Path(s)
-        # проверяем, есть ли имя файла и расширение
-        return bool(p.name and p.suffix)
-    except Exception:
-        return False
-
-
 class SessionFormat(str, Enum):
-    """Supported session formats"""
-
     TELETHON = "telethon"
     PYROGRAM = "pyrogram"
     TDATA = "tdata"
 
 
 class InputType(str, Enum):
-    """Type of input: file or string"""
-
+    AUTO = "auto"
     FILE = "file"
     STRING = "string"
 
 
 class APIType(str, Enum):
-    """Available Telegram API types"""
-
     DESKTOP = "desktop"
     ANDROID = "android"
     IOS = "ios"
@@ -54,7 +47,6 @@ class APIType(str, Enum):
 
 
 def get_api_type(api: APIType) -> APIData:
-    """Convert string API type to API type"""
     return {
         APIType.DESKTOP: API.TelegramDesktop,
         APIType.ANDROID: API.TelegramAndroid,
@@ -63,272 +55,155 @@ def get_api_type(api: APIType) -> APIData:
     }[api]
 
 
-def validate_session_path(value: Path) -> Path:
-    """Validate that the session file/directory exists"""
-    if value and not value.exists():
-        raise typer.BadParameter(f"Session path does not exist: {value}")
-    return value
-
-
-@app.command()
-def convert(
-    source: str = typer.Argument(
-        ...,
-        help="Source session (file path or session string)",
-    ),
-    from_format: SessionFormat = typer.Option(
-        ...,
-        "--from",
-        "-f",
-        help="Source session format",
-        show_default=False,
-    ),
-    to_format: SessionFormat = typer.Option(
-        ...,
-        "--to",
-        "-t",
-        help="Target session format",
-        show_default=False,
-    ),
-    output: Optional[str] = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output destination (file path or 'string' for string output)",
-        show_default=False,
-    ),
-    api_type: APIType = typer.Option(
-        APIType.DESKTOP,
-        "--api",
-        "-a",
-        help="Telegram API type to use for the conversion",
-    ),
-):
-    """
-    Convert Telegram session between different formats. Supports both files and strings.
-
-    Examples:
-        • Convert file to file:
-          $ tgconvertor convert session.session -f telethon -t pyrogram -o new_session.session
-
-        • Convert string to file:
-          $ tgconvertor convert "1:AAFqwer..." -f telethon -t pyrogram -o session.session
-
-        • Convert file to string:
-          $ tgconvertor convert session.session -f telethon -t pyrogram -o string
-
-        • Convert string to string:
-          $ tgconvertor convert "1:AAFqwer..." -f telethon -t pyrogram -o string
-
-        • Convert using specific API type:
-          $ tgconvertor convert session.session -f telethon -t pyrogram --api android
-    """
+def _configured_api(api: APIType) -> APIData:
+    api_id, api_hash = os.getenv("TGCONVERTOR_API_ID"), os.getenv("TGCONVERTOR_API_HASH")
+    if api_id is None and api_hash is None:
+        return get_api_type(api)
+    if not api_id or not api_hash:
+        raise ValidationError("Set both TGCONVERTOR_API_ID and TGCONVERTOR_API_HASH")
     try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Converting session...", total=None)
+        return APIData(api_id=int(api_id), api_hash=api_hash)
+    except ValueError:
+        raise ValidationError("Invalid TGCONVERTOR_API_ID or TGCONVERTOR_API_HASH") from None
 
-            # Process input and output
-            api = get_api_type(api_type)
 
-            # Determine if source is a file or string
-            is_source_file = is_source_file_check(source)
-            # Determine output type
-            want_string_output = output == "string" if output else False
-            output_path = None if want_string_output else (output or source)
+def _version(value: bool):
+    if value:
+        typer.echo(__version__)
+        raise typer.Exit()
 
-            # Perform conversion
-            result = asyncio.run(
-                _convert_universal(
-                    source=source,
-                    is_source_file=is_source_file,
-                    from_format=from_format,
-                    to_format=to_format,
-                    want_string_output=want_string_output,
-                    output_path=output_path,
-                    api=api,
-                )
+
+@app.callback()
+def callback(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version", callback=_version, is_eager=True, help="Print the installed version."
+        ),
+    ] = False,
+):
+    pass
+
+
+@app.command("convert")
+def convert(
+    source: Annotated[
+        str,
+        typer.Argument(help="File/directory, session string, or '-' to read a string from stdin."),
+    ],
+    from_format: Annotated[SessionFormat, typer.Option("--from", "-f", help="Source format.")],
+    to_format: Annotated[SessionFormat, typer.Option("--to", "-t", help="Target format.")],
+    output: Annotated[
+        str | None,
+        typer.Option("--output", "-o", help="New file/directory; omit or use 'string' for stdout."),
+    ] = None,
+    input_type: Annotated[
+        InputType, typer.Option("--input-type", help="Override source detection.")
+    ] = InputType.AUTO,
+    user_id: Annotated[
+        int | None,
+        typer.Option("--user-id", min=1, help="Owner ID when the source does not store it."),
+    ] = None,
+    backend: Annotated[
+        str, typer.Option("--backend", help="Output SQLite schema: auto, pyrogram, kurigram.")
+    ] = "auto",
+    api_type: Annotated[
+        APIType, typer.Option("--api", "-a", help="Compatibility API preset.")
+    ] = APIType.DESKTOP,
+    account_index: Annotated[
+        int | None,
+        typer.Option(
+            "--account-index", min=0, help="Zero-based tdata account; defaults to main account."
+        ),
+    ] = None,
+):
+    """Convert without contacting Telegram. Existing output paths are refused."""
+    try:
+        if source == "-":
+            source = sys.stdin.read(513).strip()
+            input_type = InputType.STRING
+        if backend not in ("auto", "pyrogram", "kurigram"):
+            raise ValidationError("backend must be auto, pyrogram, or kurigram")
+        destination = None if output in (None, "string") else output
+        result = asyncio.run(
+            convert_session(
+                source,
+                from_format.value,
+                to_format.value,
+                destination,
+                input_type=input_type.value,
+                api=_configured_api(api_type),
+                user_id=user_id,
+                backend=backend,
+                account_index=account_index,
+                passcode=os.getenv("TGCONVERTOR_TDATA_PASSCODE", ""),
+                output_passcode=os.getenv("TGCONVERTOR_OUTPUT_PASSCODE", ""),
             )
-
-            progress.update(task, completed=True)
-
-        console.print(f"[green]✓[/green] Session successfully converted!")
-        if want_string_output and result:
-            console.print("\n[bold]Converted string:[/bold]")
-            print(result)
-        elif output_path:
-            console.print(f"[bold]Output saved to:[/bold] {output_path}")
-
-    except ValidationError as e:
-        console.print_exception(show_locals=False)
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print_exception(show_locals=False)
-        raise typer.Exit(1)
+        )
+        if isinstance(result, str):
+            typer.echo(result)
+        else:
+            console.print(f"Saved to: {result}")
+    except (ValueError, OSError, ImportError) as exc:
+        console.print(f"Error: {exc}")
+        raise typer.Exit(1) from None
 
 
 @app.command()
 def info(
-    session_path: Path = typer.Argument(
-        ...,
-        help="Path to the session file/directory",
-        callback=validate_session_path,
-        show_default=False,
-    ),
-    format: SessionFormat = typer.Option(
-        ...,
-        "--format",
-        "-f",
-        help="Session format",
-        show_default=False,
-    ),
+    session_path: Annotated[Path, typer.Argument(help="Session file or tdata directory.")],
+    format: Annotated[SessionFormat, typer.Option("--format", "-f")],
+    account_index: Annotated[int | None, typer.Option("--account-index", min=0)] = None,
 ):
-    """
-    Display information about a Telegram session.
-
-    Examples:
-        • Show Telethon session info:
-          $ tgconvertor info session.session -f telethon
-
-        • Show Pyrogram session info:
-          $ tgconvertor info my_session.session -f pyrogram
-    """
+    """Inspect local metadata. Authorization keys and strings are never displayed."""
     try:
-        # Get session info based on format
-        info = asyncio.run(_get_session_info(session_path, format))
-
-        # Create and populate table
-        table = Table(title="Session Information")
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="green")
-
-        for key, value in info.items():
+        session = asyncio.run(
+            load_session(
+                session_path,
+                format.value,
+                input_type="file",
+                account_index=account_index,
+                passcode=os.getenv("TGCONVERTOR_TDATA_PASSCODE", ""),
+            )
+        )
+        table = Table(title="Session information")
+        table.add_column("Property")
+        table.add_column("Value")
+        for key, value in {
+            "DC ID": session.dc_id,
+            "User ID": session.user_id if session.user_id is not None else "Unknown",
+            "API ID (conversion)": session.api_id,
+            "Test mode": session.test_mode,
+            "Bot": session.is_bot,
+            "Authorization": "Not checked (offline)",
+        }.items():
             table.add_row(key, str(value))
-
         console.print(table)
-
-    except ValidationError as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"[red]Error:[/red] An unexpected error occurred: {str(e)}")
-        raise typer.Exit(1)
+    except (ValueError, OSError, ImportError) as exc:
+        console.print(f"Error: {exc}")
+        raise typer.Exit(1) from None
 
 
 @app.command()
 def list_formats():
-    """
-    List all supported session formats and API types.
-    """
-    # Session formats table
-    formats_table = Table(title="Supported Session Formats")
-    formats_table.add_column("Format", style="cyan")
-    formats_table.add_column("Description", style="green")
-
-    formats_table.add_row("telethon", "Telethon session format (.session files)")
-    formats_table.add_row("pyrogram", "Pyrogram session format (.session files)")
-    formats_table.add_row("tdata", "Telegram Desktop tdata format (directory)")
-
-    # API types table
-    api_table = Table(title="Available API Types")
-    api_table.add_column("Type", style="cyan")
-    api_table.add_column("Description", style="green")
-
-    api_table.add_row("desktop", "Telegram Desktop client")
-    api_table.add_row("android", "Telegram Android client")
-    api_table.add_row("ios", "Telegram iOS client")
-    api_table.add_row("macos", "Telegram macOS client")
-
-    console.print(formats_table)
-    console.print()
-    console.print(api_table)
-
-
-async def _convert_universal(
-    source: str,
-    from_format: SessionFormat,
-    to_format: SessionFormat,
-    api: APIData,
-    is_source_file: bool = False,
-    want_string_output: bool = False,
-    output_path: Optional[str] = None,
-) -> Optional[str]:
-    """Universal conversion function that handles both files and strings"""
-
-    # Load session from source
-    if is_source_file:
-        source_path = Path(source)
-        if not source_path.exists():
-            raise ValidationError(
-                f"Source session file/directory does not exist: {source}"
-            )
-        if from_format == SessionFormat.TELETHON:
-            session = await SessionManager.from_telethon_file(source_path, api)
-        elif from_format == SessionFormat.PYROGRAM:
-            session = await SessionManager.from_pyrogram_file(source_path, api)
-        elif from_format == SessionFormat.TDATA:
-            session = SessionManager.from_tdata_folder(source_path)
-        else:
-            raise ValidationError(f"Unsupported source format: {from_format}")
-    else:
-        if from_format == SessionFormat.TELETHON:
-            session = SessionManager.from_telethon_string(source, api)
-        elif from_format == SessionFormat.PYROGRAM:
-            session = SessionManager.from_pyrogram_string(source, api)
-        elif from_format == SessionFormat.TDATA:
-            session = SessionManager.from_tdata_folder(source)
-        else:
-            raise ValidationError(f"Format {from_format} doesn't support string input")
-    # Convert to target format
-    if want_string_output:
-        if to_format == SessionFormat.TELETHON:
-            return session.to_telethon_string()
-        elif to_format == SessionFormat.PYROGRAM:
-            return session.to_pyrogram_string()
-        else:
-            raise ValidationError(f"Format {to_format} doesn't support string output")
-    else:
-        output = Path(output_path) if output_path else Path(source)
-        if to_format == SessionFormat.TELETHON:
-            await session.to_telethon_file(output)
-        elif to_format == SessionFormat.PYROGRAM:
-            await session.to_pyrogram_file(output)
-        elif to_format == SessionFormat.TDATA:
-            await session.to_tdata_folder(output)
-        else:
-            raise ValidationError(f"Unsupported target format: {to_format}")
-        return None
-
-
-async def _get_session_info(path: Path, format: SessionFormat) -> dict:
-    """Get session information based on format"""
-    try:
-        if format == SessionFormat.TELETHON:
-            session = await SessionManager.from_telethon_file(path)
-        elif format == SessionFormat.PYROGRAM:
-            session = await SessionManager.from_pyrogram_file(path)
-        elif format == SessionFormat.TDATA:
-            session = await SessionManager.from_tdata_folder(path)
-        else:
-            raise ValidationError(f"Unsupported format: {format}")
-
-        return {
-            "DC ID": session.dc_id,
-            "User ID": session.user_id or "Unknown",
-            "Phone": session.phone_number or "Unknown",
-            "Valid": session.valid or "Unknown",
-        }
-    except Exception as e:
-        raise ValidationError(f"Failed to read session: {str(e)}")
+    """List supported input/output formats."""
+    table = Table(title="Supported session formats")
+    table.add_column("Format")
+    table.add_column("Input / output")
+    table.add_row("telethon", "Telethon 1.x SQLite files and strings")
+    table.add_row(
+        "pyrogram", "Pyrogram 2 / Kurigram SQLite files and strings (user_id required for output)"
+    )
+    table.add_row(
+        "tdata", "Telegram Desktop directories (optional tdata extra; user accounts only)"
+    )
+    console.print(table)
+    console.print("API presets: desktop, android, ios, macos")
 
 
 def main():
-    """Entry point for the CLI"""
     app()
 
 
 if __name__ == "__main__":
-    app()
+    main()

@@ -1,53 +1,66 @@
-name: Release tgconvertor
+name: Publish
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # только теги вида v0.0.9
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-and-release:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  pypi:
+    needs: checks
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/tgconvertor/
+    permissions:
+      id-token: write
+    env:
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distributions
+          path: dist
+      - name: Publish with Trusted Publishing
+        if: env.PYPI_TOKEN == ''
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+      - name: Publish with existing API token
+        if: env.PYPI_TOKEN != ''
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          attestations: false
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-
-    - name: Install build tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-
-    - name: Build package
-      run: python -m build
-
-    - name: Get latest tag for changelog
-      id: git
-      run: |
-        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-        echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
-        COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s")
-        echo "commits=$COMMITS" >> $GITHUB_OUTPUT
-
-    - name: Create GitHub Release and Upload Assets
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: |
-          Changes since ${{ steps.git.outputs.last_tag }}:
-          ${{ steps.git.outputs.commits }}
-        files: dist/*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      run: python -m twine upload dist/*
+  github-release:
+    needs: pypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distributions
+          path: dist
+      - name: Create release with the published distributions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          awk '/^## / { if (release++) exit } release { print }' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi

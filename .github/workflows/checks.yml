@@ -1,0 +1,114 @@
+name: Checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+      - run: python -m pip install --upgrade 'pip>=26.2.1,<27'
+      - run: python -m pip install '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+
+  tests:
+    name: Python ${{ matrix.python }} / ${{ matrix.extra }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        extra: [core, telethon, pyrogram, kurigram, tdata]
+        os: [ubuntu-latest]
+        include:
+          - {python: '3.10', extra: all, os: ubuntu-latest}
+          - {python: '3.14', extra: all, os: ubuntu-latest}
+          - {python: '3.10', extra: core, os: windows-latest}
+          - {python: '3.14', extra: core, os: windows-latest}
+          - {python: '3.10', extra: core, os: macos-latest}
+          - {python: '3.14', extra: core, os: macos-latest}
+          - {python: '3.12', extra: tdata, os: windows-latest}
+          - {python: '3.14', extra: tdata, os: macos-latest}
+    env:
+      TGCONVERTOR_TEST_EXTRA: ${{ matrix.extra }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install --upgrade 'pip>=26.2.1,<27'
+      - name: Install package and selected extra
+        shell: bash
+        run: |
+          if [ "$TGCONVERTOR_TEST_EXTRA" = core ]; then
+            python -m pip install '.[dev]'
+          elif [ "$TGCONVERTOR_TEST_EXTRA" = all ]; then
+            python -m pip install '.[dev,telethon,kurigram,tdata]'
+          else
+            python -m pip install ".[dev,$TGCONVERTOR_TEST_EXTRA]"
+          fi
+      - run: python -m pip check
+      - run: python -m pytest --cov=TGConvertor --cov-report=term-missing --cov-report=xml -m 'not live'
+      - run: tgconvertor --version
+      - run: python -m TGConvertor --help
+
+  minimum-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.10'
+      - run: python -m pip install --upgrade 'pip>=26.2.1,<27'
+      - run: python -m pip install '.[dev]' 'typer==0.27.2' 'rich==15.0.0'
+      - run: python -m pip check
+      - run: python -m pytest -m 'not live'
+
+  build:
+    needs: [lint, tests, minimum-dependencies]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - run: python -m pip install --upgrade 'pip>=26.2.1,<27'
+      - run: python -m pip install '.[dev]'
+      - name: Verify release tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/check_release.py "$RELEASE_TAG"
+      - name: Build sdist and wheel from sdist
+        run: python -m build
+      - run: python -m twine check --strict dist/*
+      - name: Test the installed wheel outside the repository
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-test"
+          "$RUNNER_TEMP/wheel-test/bin/python" -m pip install --upgrade 'pip>=26.2.1,<27'
+          "$RUNNER_TEMP/wheel-test/bin/python" -m pip install dist/*.whl 'pytest>=9.1.1,<10' 'pytest-asyncio>=1.4.0,<2'
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wheel-test/bin/python" -m pip check
+          "$RUNNER_TEMP/wheel-test/bin/python" -m TGConvertor --help
+          "$RUNNER_TEMP/wheel-test/bin/python" -m pytest "$GITHUB_WORKSPACE/tests" -c "$GITHUB_WORKSPACE/pyproject.toml" --import-mode=importlib -m 'not live'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
