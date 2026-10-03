@@ -20,7 +20,9 @@ EXPECTED_PACKAGES = {"tgconvertor", "opentele2", "telethon", "pyaes", "rsa", "py
 
 
 def get(url):
-    with urllib.request.urlopen(url, timeout=90) as response:
+    headers = {"Cache-Control": "no-cache"} if url.startswith("https://pypi.org/pypi/") else {}
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=90) as response:
         return response.read()
 
 

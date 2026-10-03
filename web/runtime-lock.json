@@ -2,10 +2,10 @@
   "packages": [
     {
       "name": "tgconvertor",
-      "version": "0.2.0",
-      "filename": "tgconvertor-0.2.0-py3-none-any.whl",
-      "url": "https://files.pythonhosted.org/packages/ef/f4/d89d99dec770097127549b22061528c0888a98c47ba0c3c40b5c9a0c13a6/tgconvertor-0.2.0-py3-none-any.whl",
-      "sha256": "ec6494a4cb95756590fc522b2c745360aec8c374e702bf58e027c66690b7b5f4"
+      "version": "0.3.0",
+      "filename": "tgconvertor-0.3.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/9e/a4/44a5d81710e18914d4c3c99df7b28aad37aaa7f618557d95bebfa72f8875/tgconvertor-0.3.0-py3-none-any.whl",
+      "sha256": "2f03f6231b2b0d4f794e1fad06ef54a47f13d4222c57a91df35e3e6c2fdf1fb6"
     },
     {
       "name": "opentele2",
