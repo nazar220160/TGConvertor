@@ -4,8 +4,8 @@
 
 [![CI](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml/badge.svg)](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml)
 [![Web panel](https://github.com/nazar220160/TGConvertor/actions/workflows/web.yml/badge.svg)](https://github.com/nazar220160/TGConvertor/actions/workflows/web.yml)
-[![PyPI](https://img.shields.io/pypi/v/tgconvertor)](https://pypi.org/project/tgconvertor/)
-[![Python](https://img.shields.io/pypi/pyversions/tgconvertor)](https://pypi.org/project/tgconvertor/)
+[![Latest release](https://img.shields.io/github/v/release/nazar220160/TGConvertor)](https://github.com/nazar220160/TGConvertor/releases/latest)
+[![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nazar220160/TGConvertor/blob/master/LICENSE)
 
 Convert Telegram authorizations between **Telethon**, **Pyrogram / Kurigram**, and **Telegram Desktop tdata**. File reads and conversions are offline. Telegram clients are optional and only needed for explicit network operations.
