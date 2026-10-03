@@ -34,6 +34,21 @@ self.addEventListener('activate', (event) =>
   ),
 );
 self.addEventListener('message', (event) => {
+  if (event.data?.type === 'CAN_AUTO_UPDATE')
+    event.waitUntil(
+      (async () => {
+        // A waiting worker controls no clients yet, so include the active worker's tabs.
+        const clients = (
+          await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        ).filter((client) => {
+          const url = new URL(client.url);
+          return url.origin === ROOT.origin && url.pathname.startsWith(ROOT.pathname);
+        });
+        event.ports[0]?.postMessage({
+          alone: clients.length === 1 && clients[0].id === event.source?.id,
+        });
+      })(),
+    );
   if (event.data?.type === 'APPLY_UPDATE') event.waitUntil(self.skipWaiting());
   if (event.data?.type === 'OFFLINE_STATUS')
     event.waitUntil(

@@ -43,7 +43,13 @@ class Storage {
     };
   }
 }
-function worker({ storage = new Storage(), build = null, corrupt = null, fail = null } = {}) {
+function worker({
+  storage = new Storage(),
+  build = null,
+  corrupt = null,
+  fail = null,
+  clients = [],
+} = {}) {
   const listeners = new Map();
   const state = { online: true, requests: [], skipped: 0, claimed: 0 };
   const code = build
@@ -63,6 +69,11 @@ function worker({ storage = new Storage(), build = null, corrupt = null, fail = 
         state.skipped++;
       },
       clients: {
+        async matchAll(options) {
+          assert.equal(options.type, 'window');
+          assert.equal(options.includeUncontrolled, true);
+          return clients.map((client) => ({ url: scope, ...client }));
+        },
         async claim() {
           state.claimed++;
         },
@@ -198,4 +209,35 @@ test('offline readiness is reported only for a complete cache', async () => {
     .value.delete(scope + 'runtime/pyodide.asm.wasm');
   await status();
   assert.equal(message.ready, false);
+});
+
+test('automatic activation is allowed only for the requesting tab when it is the sole controlled window', async () => {
+  for (const [clients, id, expected] of [
+    [[{ id: 'fresh-tab' }], 'fresh-tab', true],
+    [
+      [{ id: 'fresh-tab' }, { id: 'unrelated', url: 'https://example.test/another-app/' }],
+      'fresh-tab',
+      true,
+    ],
+    [[{ id: 'fresh-tab' }, { id: 'other-tab' }], 'fresh-tab', false],
+    [[{ id: 'other-tab' }], 'fresh-tab', false],
+    [[], 'fresh-tab', false],
+    [[{ id: 'fresh-tab' }], undefined, false],
+  ]) {
+    const w = worker({ clients });
+    let message;
+    await w.event('message', {
+      data: { type: 'CAN_AUTO_UPDATE' },
+      source: { id },
+      ports: [
+        {
+          postMessage(value) {
+            message = value;
+          },
+        },
+      ],
+    });
+    assert.equal(message.alone, expected);
+    assert.equal(w.state.skipped, 0, 'probing clients must not activate the worker');
+  }
 });

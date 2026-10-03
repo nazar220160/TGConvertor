@@ -10,7 +10,7 @@
     "build": "tsc --noEmit && vite build && node scripts/build_pwa.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node tests/engine.test.mjs",
-    "test:pwa": "node --test tests/pwa.test.mjs",
+    "test:pwa": "node --test tests/pwa.test.mjs tests/pwa-client.test.mjs",
     "format:check": "prettier --check src/*.ts src/*.css scripts/*.mjs scripts/*.js tests/*.mjs *.json *.ts *.html public/*.webmanifest"
   },
   "devDependencies": {

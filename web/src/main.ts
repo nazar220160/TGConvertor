@@ -324,6 +324,14 @@ let activeAction: 'inspect' | 'convert' = 'convert';
 let startTime = 0;
 let offlineState: OfflineState = 'saving';
 let updateAvailable = false;
+let workspaceTouched = false;
+// Keep even partially entered options and format choices when an update arrives.
+for (const type of ['input', 'change', 'click'])
+  $('converter').addEventListener(type, (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('input, select, textarea, [data-mode], [data-output], #demo'))
+      workspaceTouched = true;
+  });
 function showOfflineState() {
   const key = {
     saving: 'offlineSaving',
@@ -338,18 +346,37 @@ function showOfflineState() {
   $('apply-update').hidden = !updateAvailable;
   $<HTMLButtonElement>('apply-update').disabled = busy;
 }
-const applyUpdate = registerOffline((state, update) => {
-  offlineState = state;
-  updateAvailable = update;
-  showOfflineState();
-});
+const offlineUpdates = registerOffline(
+  (state, update) => {
+    offlineState = state;
+    updateAvailable = update;
+    showOfflineState();
+  },
+  () =>
+    (ready || bootFailed) &&
+    !busy &&
+    !workspaceTouched &&
+    !selectedFile &&
+    !result &&
+    inputMode !== 'demo' &&
+    ![
+      'session-string',
+      'user-id',
+      'input-passcode',
+      'output-passcode',
+      'account-index',
+      'api-id',
+      'api-hash',
+    ].some(value),
+);
 $('apply-update').addEventListener('click', () => {
-  if (!busy) applyUpdate();
+  if (!busy) offlineUpdates.applyUpdate();
 });
 window.addEventListener('online', showOfflineState);
 window.addEventListener('offline', showOfflineState);
 function updateButtons() {
   showOfflineState();
+  void offlineUpdates.check();
   $<HTMLButtonElement>('convert').disabled = !ready || busy;
   $<HTMLButtonElement>('inspect').disabled = !ready || busy;
   $('convert').innerHTML =
@@ -671,6 +698,7 @@ $('inspect').addEventListener('click', () => submit('inspect'));
 $('retry').addEventListener('click', initialize);
 $('clear').addEventListener('click', () => {
   ++requestId;
+  workspaceTouched = false;
   selectedFile = null;
   inputMode = 'file';
   outputMode = 'file';
