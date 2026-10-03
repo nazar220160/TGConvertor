@@ -1,13 +1,27 @@
 # TGConvertor
 
+[![TGConvertor — Telegram session converter](https://raw.githubusercontent.com/nazar220160/TGConvertor/master/public/images/poster.png)](https://nazar220160.github.io/TGConvertor/)
+
 [![CI](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml/badge.svg)](https://github.com/nazar220160/TGConvertor/actions/workflows/ci.yml)
+[![Web panel](https://github.com/nazar220160/TGConvertor/actions/workflows/web.yml/badge.svg)](https://github.com/nazar220160/TGConvertor/actions/workflows/web.yml)
 [![PyPI](https://img.shields.io/pypi/v/tgconvertor)](https://pypi.org/project/tgconvertor/)
 [![Python](https://img.shields.io/pypi/pyversions/tgconvertor)](https://pypi.org/project/tgconvertor/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nazar220160/TGConvertor/blob/master/LICENSE)
 
 Convert Telegram authorizations between **Telethon**, **Pyrogram / Kurigram**, and **Telegram Desktop tdata**. File reads and conversions are offline. Telegram clients are optional and only needed for explicit network operations.
 
+[![Open web converter](https://img.shields.io/badge/Open_web_converter-6655d6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://nazar220160.github.io/TGConvertor/)
+[![Install from PyPI](https://img.shields.io/badge/Install_from_PyPI-3776AB?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/tgconvertor/)
+
+[Quick start](#quick-start) · [Python API](#python-api) · [Releases](https://github.com/nazar220160/TGConvertor/releases) · [Discussions](https://github.com/nazar220160/TGConvertor/discussions) · [Report a bug](https://github.com/nazar220160/TGConvertor/issues/new/choose)
+
 **[Try the browser workspace](https://nazar220160.github.io/TGConvertor/)** — free, no installation. Convert files, strings and tdata ZIPs locally on your device, or click **Try a demo**. Sessions are not uploaded and Telegram is not contacted. [Web panel details and self-hosting](web/README.md).
+
+| Use it your way | Start here |
+| --- | --- |
+| Browser | [Open the web converter](https://nazar220160.github.io/TGConvertor/). Russian/English UI, file and string conversion, tdata ZIPs, installable PWA. After **Available offline**, reopening works without internet. |
+| Command line | Install from PyPI, then run [`tgconvertor convert`](#quick-start). Supports stdin and automation. |
+| Python | Call [`convert()` or `SessionManager`](#python-api) from your own application. |
 
 > Session files and strings grant access to an account. Keep them private, use only accounts you own or are authorized to manage, and never commit them or paste them into issue reports.
 
@@ -180,6 +194,8 @@ Malformed/incomplete authorizations raise `ValidationError`; missing optional de
 ## Development and releases
 
 See [CONTRIBUTING.md](https://github.com/nazar220160/TGConvertor/blob/master/CONTRIBUTING.md) for test commands, optional live verification, the CI matrix, and PyPI publishing setup. See [CHANGELOG.md](https://github.com/nazar220160/TGConvertor/blob/master/CHANGELOG.md) for migration from 0.1.x.
+
+Use [Discussions](https://github.com/nazar220160/TGConvertor/discussions) for questions and examples, or [issue forms](https://github.com/nazar220160/TGConvertor/issues/new/choose) for reproducible bugs and feature requests. Read the [security policy](SECURITY.md) before reporting a vulnerability. Contributions are welcome; include a synthetic reproduction and the checks relevant to your change.
 
 The offline suite uses synthetic authorizations and blocks outgoing network connections, including inside CLI subprocesses. It tests all 49 input/output representation combinations through `convert()`, `SessionManager`, the CLI, and the installed console command. CI verifies the base install, each extra independently, combined clients/tdata, lint/format checks, minimum CLI dependencies, package metadata, and installation of the built wheel. The publish workflow runs the same checks on the exact tagged commit before publishing the tested distributions. Live verification is a separate opt-in local test.
 

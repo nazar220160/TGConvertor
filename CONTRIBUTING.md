@@ -1,5 +1,11 @@
 # Contributing
 
+## Questions, bugs and pull requests
+
+Ask usage questions in [Discussions](https://github.com/nazar220160/TGConvertor/discussions). Use the [issue forms](https://github.com/nazar220160/TGConvertor/issues/new/choose) for bugs and feature requests; include package/Python versions, the conversion direction and a synthetic reproduction. For vulnerabilities, follow [SECURITY.md](SECURITY.md).
+
+Before a pull request, check existing issues and discuss substantial API or format changes. Keep changes focused, document user-visible behavior, and test the affected conversion paths. The pull request template asks for a short explanation and the checks you actually ran. Never include real session files, session strings, passcodes or API hashes in examples, attachments or logs.
+
 ## Local checks
 
 Use Python 3.10–3.14 and a virtual environment:
@@ -72,6 +78,7 @@ Requests run sequentially, with a short pause. Explicit Telegram FloodWait respo
 3. Tag the reviewed commit with exactly `v<project.version>`, for example `v0.2.0`, and push that tag.
 4. `publish.yml` runs the entire check workflow, verifies tag/version equality, downloads the tested distributions, and publishes them to PyPI. If `PYPI_TOKEN` is present, the token path is used; otherwise the job uses OIDC Trusted Publishing with attestations.
 5. Only after PyPI succeeds, the workflow creates the GitHub release with notes from the changelog and the same wheel/sdist assets.
+6. A successful Publish run automatically triggers `web.yml` from master. It bundles that released PyPI version, runs browser/native/PWA checks and updates GitHub Pages. See [web/README.md](web/README.md) for panel development and offline caching.
 
 Configure tag rules and the `pypi` environment according to the repository's maintainer policy. The workflows use read-only permissions for checks, `id-token: write` only for publishing, and `contents: write` only for creating the GitHub release. A failed check or a mismatched tag blocks publication. Published PyPI versions cannot be replaced; use a new version for fixes.
 

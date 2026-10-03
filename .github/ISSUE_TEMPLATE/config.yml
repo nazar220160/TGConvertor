@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Open the web converter
+    url: https://nazar220160.github.io/TGConvertor/
+    about: Convert locally in your browser or try a synthetic demo. No installation required.
+  - name: Questions and examples
+    url: https://github.com/nazar220160/TGConvertor/discussions
+    about: Ask usage questions and discuss ideas in English or Russian.
+  - name: Report a security vulnerability privately
+    url: https://github.com/nazar220160/TGConvertor/security/advisories/new
+    about: Keep vulnerability details and authorization data out of public issues.

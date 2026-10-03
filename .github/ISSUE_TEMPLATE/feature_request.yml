@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a format, workflow or usability improvement.
+title: '[Feature]: '
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: English and Russian suggestions are welcome. Check existing issues and discussions for similar ideas first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the use case and the current limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the desired API, CLI command or panel interaction. Use synthetic examples only.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and context
+      description: Mention workarounds, related upstream documentation or existing issues if relevant.

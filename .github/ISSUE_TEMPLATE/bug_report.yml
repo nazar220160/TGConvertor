@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a problem with the Python API, CLI or browser converter.
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Russian reports are welcome. Please check existing issues first.
+        Use synthetic data only: never include real sessions, auth keys, API hashes or passcodes.
+        For a vulnerability, use [private reporting](https://github.com/nazar220160/TGConvertor/security/advisories/new).
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Where does the problem occur?
+      options: [Python API, CLI, Web panel, Installation]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TGConvertor version
+      description: Run python -m TGConvertor --version, or copy the version shown in the web panel.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and Python version; for the panel, browser name and version. Include relevant client versions if installed.
+      placeholder: Windows 11, Python 3.14, Telethon 1.x / Chrome on Android
+    validations:
+      required: true
+  - type: input
+    id: direction
+    attributes:
+      label: Conversion direction
+      description: Include file/string/ZIP, the selected backend and whether tdata has a local passcode. Do not include the passcode itself.
+      placeholder: Telethon file → Kurigram file
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps or a minimal synthetic reproduction
+      description: Provide the exact command, a small code example or the steps used in the panel, with fake authorization data.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Explain what should happen and what happens instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized error output
+      description: Remove session strings, auth keys, API hashes, passcodes, phone numbers and account identifiers before posting.
+      render: text
