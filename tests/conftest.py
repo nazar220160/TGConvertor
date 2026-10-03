@@ -1,10 +1,11 @@
 import os
-import socket
-import textwrap
+from pathlib import Path
 
 import pytest
 
 from TGConvertor import APIData, SessionManager
+
+from ._network_guard import install_network_guard
 
 
 @pytest.fixture
@@ -27,14 +28,7 @@ def session(auth_key, api):
 def no_network(monkeypatch, request):
     if request.node.get_closest_marker("live") and os.getenv("TGCONVERTOR_RUN_LIVE") == "1":
         return
-    original = socket.socket.connect
-
-    def connect(sock, address):
-        if sock.family in (socket.AF_INET, socket.AF_INET6):
-            raise AssertionError("Offline tests must not connect to the network")
-        return original(sock, address)
-
-    monkeypatch.setattr(socket.socket, "connect", connect)
+    install_network_guard(monkeypatch.setattr)
 
 
 @pytest.fixture
@@ -43,21 +37,8 @@ def offline_process_env(tmp_path):
     guard = tmp_path / "offline-python"
     guard.mkdir()
     (guard / "sitecustomize.py").write_text(
-        textwrap.dedent(
-            """\
-            import socket
-            original_connect = socket.socket.connect
-            original_connect_ex = socket.socket.connect_ex
-            def guard_connect(original):
-                def connect(sock, address):
-                    if sock.family in (socket.AF_INET, socket.AF_INET6):
-                        raise AssertionError("Offline tests must not connect to the network")
-                    return original(sock, address)
-                return connect
-            socket.socket.connect = guard_connect(original_connect)
-            socket.socket.connect_ex = guard_connect(original_connect_ex)
-            """
-        ),
+        Path(__file__).with_name("_network_guard.py").read_text(encoding="utf-8")
+        + "\ninstall_network_guard()\n",
         encoding="utf-8",
     )
     # Only the guard is on PYTHONPATH; package imports must resolve to the installed wheel.
