@@ -182,7 +182,7 @@ def test_test_dc_detection(auth_key):
     assert GramSession.from_string(gram.to_string()).test_mode is True
 
 
-async def test_auto_invalid_version_does_not_echo_credentials():
+def test_auto_invalid_version_does_not_echo_credentials():
     from typer.testing import CliRunner
 
     from TGConvertor.__main__ import app
