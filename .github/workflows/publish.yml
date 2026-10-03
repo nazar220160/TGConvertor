@@ -64,13 +64,3 @@ jobs:
           else
             gh release create "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-
-  web-panel:
-    needs: pypi
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/web.yml
-    with:
-      library-version: ${{ github.ref_name }}

@@ -7,12 +7,14 @@ on:
   pull_request:
     paths: ['web/**', '.github/workflows/web.yml']
   workflow_dispatch:
-  workflow_call:
     inputs:
       library-version:
         description: 'Published PyPI release/tag, or latest for regular builds'
         type: string
         default: latest
+  workflow_run:
+    workflows: [Publish]
+    types: [completed]
 
 permissions:
   contents: read
@@ -25,6 +27,14 @@ concurrency:
 
 jobs:
   build:
+    # Run release follow-ups from master, which is allowed by the Pages environment.
+    # Only a successful tag publication in this repository can start this path.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       startsWith(github.event.workflow_run.head_branch, 'v') &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -47,7 +57,7 @@ jobs:
       - run: npm run format:check --prefix web
       - name: Bundle published PyPI library
         env:
-          LIBRARY_VERSION: ${{ inputs.library-version || 'latest' }}
+          LIBRARY_VERSION: ${{ inputs.library-version || github.event.workflow_run.head_branch || 'latest' }}
         run: npm run update:library --prefix web -- "$LIBRARY_VERSION"
       - name: Generate native synthetic sessions and crypto vectors
         run: python web/tests/generate_fixtures.py "$RUNNER_TEMP/web-fixtures"
@@ -63,7 +73,7 @@ jobs:
           path: web/dist
 
   deploy:
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
